@@ -1,6 +1,7 @@
 const { app, BrowserWindow, ipcMain, clipboard, Notification } = require('electron');
 const path = require('path');
 const { GlobalKeyboardListener } = require('node-global-key-listener');
+const ollamaService = require('./src/service/ollama');
 
 let mainWindow;
 const keyboardListener = new GlobalKeyboardListener();
@@ -244,11 +245,28 @@ function setupKeyboardShortcuts() {
     log('Keyboard shortcuts setup complete');
 }
 
-app.whenReady().then(() => {
-    log('App ready, initializing...');
-    createWindow();
-    setupKeyboardShortcuts();
-    log('Initialization complete');
+///
+///app.whenReady().then(() => {
+///    log('App ready, initializing...');
+///    createWindow();
+///    setupKeyboardShortcuts();
+///    log('Initialization complete');
+///});
+
+app.whenReady().then(async () => {
+    try {
+        await ollamaService.startOllama();
+        createWindow();
+        setupKeyboardShortcuts();
+    } catch (error) {
+        console.error('Failed to start Ollama:', error);
+        // Handle error appropriately
+    }
+});
+
+// Add before app.quit
+app.on('will-quit', () => {
+    ollamaService.stop();
 });
 
 app.on('window-all-closed', () => {
