@@ -25,19 +25,24 @@
       }
     ],
     "win": {
-      "target": "nsis",
-      "icon": "resources/icons/icon.ico", 
-      "artifactName": "${productName}-Setup-${version}.${ext}",
-      "nsis": {
-        "oneClick": false,
-        "allowToChangeInstallationDirectory": true,
-        "createDesktopShortcut": true,
-        "createStartMenuShortcut": true,
-        "shortcutName": "Content Analyzer",
-        "uninstallDisplayName": "Content Analyzer",
-        "installerIcon": "resources/icons/icon.ico",
-        "uninstallerIcon": "resources/icons/icon.ico"
-      }
+      "target": [
+        {
+          "target": "nsis",
+          "arch": ["x64"]
+        }
+      ],
+      "icon": "resources/icons/icon.ico",
+      "artifactName": "${productName}-Setup-${version}.${ext}"
+    },
+    "nsisWeb": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Content Analyzer",
+      "uninstallDisplayName": "Content Analyzer",
+      "installerIcon": "resources/icons/icon.ico",
+      "uninstallerIcon": "resources/icons/icon.ico"
     },
     "linux": {
       "target": "AppImage"
