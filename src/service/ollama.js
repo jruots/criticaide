@@ -7,6 +7,9 @@ class OllamaService {
     constructor() {
         this.childProcess = null;
         this.host = 'http://127.0.0.1:11434';
+        // Set development mode based on npm start vs packaged app
+        this.isDev = process.env.NODE_ENV !== 'production';
+        console.log(`OllamaService initialized in ${this.isDev ? 'development' : 'production'} mode`);
     }
 
     async startOllama() {
@@ -19,30 +22,58 @@ class OllamaService {
             console.log('Ollama is not running, starting it up...');
         }
 
-        // Get the appropriate binary path
+        if (this.isDev) {
+            // In development, try to use system Ollama first
+            try {
+                await this.startSystemOllama();
+                return;
+            } catch (err) {
+                console.log('Could not start system Ollama:', err);
+                console.log('Falling back to packaged Ollama...');
+            }
+        }
+
+        // If we're in production or system Ollama failed, use packaged version
+        await this.startPackagedOllama();
+    }
+
+    async startSystemOllama() {
+        return new Promise((resolve, reject) => {
+            this.childProcess = exec('ollama serve', (err) => {
+                if (err) {
+                    reject(err);
+                    return;
+                }
+            });
+
+            this.waitForOllama()
+                .then(resolve)
+                .catch(reject);
+        });
+    }
+
+    async startPackagedOllama() {
         const binaryPath = this.getOllamaBinaryPath();
         const appDataPath = this.getAppDataPath();
 
-        // Ensure app data directory exists
         if (!fs.existsSync(appDataPath)) {
             fs.mkdirSync(appDataPath, { recursive: true });
         }
 
-        // Start Ollama
         return new Promise((resolve, reject) => {
             const env = {
                 ...process.env,
                 OLLAMA_MODELS: appDataPath
             };
 
-            this.childProcess = exec(`${binaryPath} serve`, { env }, (err, stdout, stderr) => {
+            console.log(`Starting packaged Ollama from: ${binaryPath}`);
+            this.childProcess = exec(`"${binaryPath}" serve`, { env }, (err) => {
                 if (err) {
                     reject(`Failed to start Ollama: ${err}`);
                     return;
                 }
             });
 
-            // Wait for Ollama to start
             this.waitForOllama()
                 .then(resolve)
                 .catch(reject);
@@ -50,11 +81,9 @@ class OllamaService {
     }
 
     getOllamaBinaryPath() {
-        // Get the path to the packaged Ollama binary
-        const isProd = process.env.NODE_ENV === 'production';
-        const binariesPath = isProd 
-            ? process.resourcesPath
-            : path.join(__dirname, '..', '..', 'resources');
+        const binariesPath = this.isDev 
+            ? path.join(__dirname, '..', '..', 'resources')
+            : process.resourcesPath;
 
         let binaryName;
         switch (process.platform) {
