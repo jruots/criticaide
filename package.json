@@ -26,7 +26,7 @@
     ],
     "win": {
       "target": "nsis",
-      "icon": "path/to/icon.ico",  // We need an icon
+      "icon": "resources/icons/icon.ico", 
       "artifactName": "${productName}-Setup-${version}.${ext}",
       "nsis": {
         "oneClick": false,         // Allow custom installation directory
@@ -35,8 +35,8 @@
         "createStartMenuShortcut": true,
         "shortcutName": "Content Analyzer",
         "uninstallDisplayName": "Content Analyzer",
-        "installerIcon": "path/to/icon.ico",
-        "uninstallerIcon": "path/to/icon.ico"
+        "installerIcon": "resources/icons/icon.ico",
+        "uninstallerIcon": "resources/icons/icon.ico"
       }
     },
     "linux": {
