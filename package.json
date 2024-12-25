@@ -29,7 +29,7 @@
       "icon": "resources/icons/icon.ico", 
       "artifactName": "${productName}-Setup-${version}.${ext}",
       "nsis": {
-        "oneClick": false,         // Allow custom installation directory
+        "oneClick": false,
         "allowToChangeInstallationDirectory": true,
         "createDesktopShortcut": true,
         "createStartMenuShortcut": true,
