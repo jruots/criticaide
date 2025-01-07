@@ -1,3 +1,7 @@
+<div align="center">
+    <img src="./screenshots/criticaide.png" width="300">
+</div>
+
 # Criticaide
 
 Your first line of defense in an era of digital manipulation - a desktop application that helps analyze text content for misinformation, disinformation, and bias.
