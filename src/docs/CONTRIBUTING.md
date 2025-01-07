@@ -17,10 +17,9 @@ Thanks for your interest in contributing to Criticaide! As this is a proof-of-co
 
 ## Guidelines
 
-- Keep it simple
-- Maintain existing code style
-- Add comments for non-obvious code
-- Test your changes thoroughly
+- Keep it simple - prefer more verbose and well commented code than any fancy shit.
+- Add comments for non-obvious code: comments are made for humans, code for machines.
+- Test your changes thoroughly. E.g. for Windows you can use VirtualBox and install Windows on it to test packaged builds. Changes not tested on packaged builds will not be merged
 - Update documentation if needed
 
 ## Questions?
