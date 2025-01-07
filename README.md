@@ -67,6 +67,7 @@ This project is built upon or inspired by the work of:
 
 - [chatd](https://github.com/BruceMacD/chatd) - Some of our Electron app structure and implementations are based on this project
 - [Ollama](https://github.com/ollama/ollama) - Used as the underlying LLM service for text analysis
+- App icon by [Karyative] on [Flaticon](https://www.flaticon.com/)
 
 Both projects are MIT licensed. We're grateful to their creators and contributors.
 
