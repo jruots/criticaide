@@ -11,6 +11,12 @@ const path = require('path');
 const { exec } = require('child_process');
 const logger = require('../../utils/logger');
 
+let store;
+(async () => {
+    const Store = await import('electron-store');
+    store = new Store.default();
+})();
+
 // Model configuration remains the same
 const MODEL_CONFIG = {
     'mistral': {
@@ -74,35 +80,36 @@ class OllamaOrchestrator {
         try {
             logger.info(`Pulling model: ${this.currentModel}`);
             const modelToUse = this.currentModel;
-            
+           
             try {
                 const response = await fetch(`${this.host}/api/tags`);
                 const data = await response.json();
                 const modelExists = data.models?.some(model => model.name === modelToUse);
-                
-                if (!modelExists) {
+               
+                if (!modelExists && !store.get('initialModelDownloaded')) {
                     logger.info(`Model ${modelToUse} not found, starting download...`);
                     const { Notification } = require('electron');
                     new Notification({
                         title: 'Model Download',
                         body: `First time startup: Downloading ${modelToUse} model. This may take a few minutes depending on your internet connection.`
                     }).show();
+                    store.set('initialModelDownloaded', true);
                 }
             } catch (error) {
                 logger.warn('Error checking model existence:', error);
                 // Continue with pull anyway
             }
-            
+           
             logger.info(`Starting model pull for ${modelToUse}`);
             const stream = await this.ollama.pull({
                 model: modelToUse,
                 stream: true
             });
-            
+           
             for await (const part of stream) {
                 logger.debug('Pull progress:', part);
             }
-            
+           
             logger.info('Model pull complete');
         } catch (err) {
             logger.error('Failed to pull model:', err);
