@@ -8,7 +8,7 @@ Criticaide is a proof-of-concept desktop application that uses local LLM capabil
 
 ## Features
 
-- Global keyboard shortcuts (Ctrl+C and Ctrl+Alt+Shift+T) for instant analysis
+- Global keyboard shortcuts (Ctrl+C and Ctrl+Alt+Shift+T) for near-instant analysis
 - Local processing using Ollama - your data stays on your machine. Ensures user privacy by performing all analysis locally, without sending data to third-party servers.
 - Adaptive model selection based on system capabilities (downloads either Phi2 or Mistral 7B)
 - Heuristic context handling: Employs a heuristic approach to manage context windows in tokens of copied text, enabling analysis of longer content.
@@ -29,7 +29,7 @@ Criticaide is a proof-of-concept desktop application that uses local LLM capabil
 
 ## Installation
 
-1. Download the latest release from the releases page
+1. Download the latest release from the [releases page](https://github.com/jruots/criticaide/releases)
 2. Run the installer
 3. Launch Criticaide
 4. First launch will download the appropriate AI model
@@ -60,7 +60,7 @@ npm start
 ```
 
 ## Contributing
-This is a proof-of-concept project and I'm excited to see it grow. Contributions, ideas, and feedback are welcome! See our Contributing Guidelines for more information.
+This is a proof-of-concept project and I'm excited to see it grow. Contributions, ideas, and feedback are welcome! See the [Contributing Guidelines](https://github.com/jruots/criticaide/blob/main/src/docs/CONTRIBUTING.md) for more information.
 
 ## License
 MIT License
@@ -69,7 +69,7 @@ MIT License
 
 This project is built upon or inspired by the work of:
 
-- [chatd](https://github.com/BruceMacD/chatd) - Some of our Electron app structure and implementations are based on this project
+- [chatd](https://github.com/BruceMacD/chatd) - Some of the Electron app structure and implementations are based on this project
 - [Ollama](https://github.com/ollama/ollama) - Used as the underlying LLM service for text analysis
 - App icon by [Karyative] on [Flaticon](https://www.flaticon.com/)
 
