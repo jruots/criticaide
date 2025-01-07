@@ -47,7 +47,11 @@ This is a proof-of-concept project built with:
 ```bash
 # Clone the repository
 git clone https://github.com/jruots/criticaide.git
+```
 
+Download the [Ollama binary](https://ollama.com/download) for the needed platform/s and set them in resources/ollama/runners/win or other platform
+
+```bash
 # Install dependencies
 npm install
 
