@@ -1,19 +1,19 @@
 # Criticaide
 
-Your shield against manipulation - a desktop application that helps analyze text content for misinformation and bias.
+Your first line of defense in an era of digital manipulation - a desktop application that helps analyze text content for misinformation, disinformation, and bias.
 
 ## Overview
 
-Criticaide is a proof-of-concept desktop application that uses local LLM capabilities (via Ollama) to analyze text content for potential misinformation, manipulation techniques, and bias. Simply select any text, use the global shortcut (Ctrl+Alt+Shift+T), and get instant analysis.
+Criticaide is a proof-of-concept desktop application that uses local LLM capabilities (via Ollama) to analyze text content for potential misinformation, disinformation, manipulation techniques, and bias. Simply select any text, copy it with Ctrl+C, and use the global shortcut (Ctrl+Alt+Shift+T), and get near-instant analysis.
 
 ## Features
 
-- Global keyboard shortcut (Ctrl+Alt+Shift+T) for instant analysis
-- Local processing using Ollama - your data stays on your machine
-- Adaptive model selection based on system capabilities
+- Global keyboard shortcuts (Ctrl+C and Ctrl+Alt+Shift+T) for instant analysis
+- Local processing using Ollama - your data stays on your machine. Privacy first.
+- Adaptive model selection based on system capabilities (downloads either Phi2 or Mistral 7B)
 - Dark mode interface
 - Detailed analysis including:
-  - Credibility scoring
+  - Credibility score
   - Potential issues identification
   - Key concerns
   - Reading recommendations
@@ -42,7 +42,7 @@ This is a proof-of-concept project built with:
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/criticaide.git
+git clone https://github.com/jruots/criticaide.git
 
 # Install dependencies
 npm install
@@ -52,7 +52,7 @@ npm start
 ```
 
 ## Contributing
-This is a proof-of-concept project and we're excited to see it grow. Contributions, ideas, and feedback are welcome! See our Contributing Guidelines for more information.
+This is a proof-of-concept project and I'm excited to see it grow. Contributions, ideas, and feedback are welcome! See our Contributing Guidelines for more information.
 
 ## License
 MIT License
