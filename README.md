@@ -1,5 +1,5 @@
 <div align="center">
-    <img src="./screenshots/criticaide.png" width="500">
+    <img src="./screenshots/criticaide.png" width="700">
 </div>
 
 # Criticaide
