@@ -49,6 +49,7 @@ npm install
 
 # Run in development mode
 npm start
+```
 
 ## Contributing
 This is a proof-of-concept project and we're excited to see it grow. Contributions, ideas, and feedback are welcome! See our Contributing Guidelines for more information.
