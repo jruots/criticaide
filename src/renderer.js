@@ -1,16 +1,24 @@
 window.api.receiveAnalysis((data) => {
     const resultsDiv = document.getElementById('results');
     
+    // Check if we received a token limit error
+    if (data.error === 'TOKEN_LIMIT_EXCEEDED') {
+        resultsDiv.innerHTML = `
+            <div class="error-message">
+                <h3>Text Too Long</h3>
+                <p>${data.message}</p>
+                <p>Please try again with a shorter text.</p>
+            </div>
+        `;
+        return;
+    }
+   
     let html = `
-        <div class="analyzed-text">
-            <h3>Analyzed Text:</h3>
-            <p>${data.text}</p>
-        </div>
         <div class="score">
             <h3>Credibility Score: ${data.analysis.credibility_score}/10</h3>
         </div>
     `;
-
+   
     if (data.analysis.potential_issues.length > 0) {
         html += '<div class="issues"><h3>Potential Issues:</h3><ul>';
         data.analysis.potential_issues.forEach(issue => {
@@ -24,6 +32,14 @@ window.api.receiveAnalysis((data) => {
         html += '</ul></div>';
     } else {
         html += '<p class="no-issues">No significant issues found</p>';
+    }
+
+    if (data.analysis.key_concerns && data.analysis.key_concerns.length > 0) {
+        html += '<div class="concerns"><h3>Key Concerns:</h3><ul>';
+        data.analysis.key_concerns.forEach(concern => {
+            html += `<li>${concern}</li>`;
+        });
+        html += '</ul></div>';
     }
 
     if (data.analysis.recommendation) {

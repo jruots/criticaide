@@ -1,11 +1,26 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Content Analyzer</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Criticaide</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <div id="results"></div>
+    <main class="app-container">
+        <header class="app-header">
+            <h1>Criticaide</h1>
+            <p class="header-subtitle">Press Ctrl+Alt+Shift+T to analyze copied text</p>
+        </header>
+        
+        <div id="results" class="results-container">
+            <!-- Content will be injected here by renderer.js -->
+        </div>
+
+        <footer class="app-footer">
+            <p class="shortcut-hint">💡 Your first line of defense in an era of digital manipulation.</p>
+        </footer>
+    </main>
     <script src="renderer.js"></script>
 </body>
 </html>
