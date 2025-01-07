@@ -9,8 +9,11 @@ Criticaide is a proof-of-concept desktop application that uses local LLM capabil
 ## Features
 
 - Global keyboard shortcuts (Ctrl+C and Ctrl+Alt+Shift+T) for instant analysis
-- Local processing using Ollama - your data stays on your machine. Privacy first.
+- Local processing using Ollama - your data stays on your machine. Ensures user privacy by performing all analysis locally, without sending data to third-party servers.
 - Adaptive model selection based on system capabilities (downloads either Phi2 or Mistral 7B)
+- Heuristic context handling: Employs a heuristic approach to manage context windows in tokens of copied text, enabling analysis of longer content.
+- Extensive logging: Generates detailed local logs to aid in troubleshooting and error reporting, ensuring a smooth user experience
+- Graceful error handling: Provides informative messages in low-RAM environments, directing users to maintain functionality across a wide range of systems.
 - Dark mode interface
 - Detailed analysis including:
   - Credibility score
@@ -30,13 +33,14 @@ Criticaide is a proof-of-concept desktop application that uses local LLM capabil
 2. Run the installer
 3. Launch Criticaide
 4. First launch will download the appropriate AI model
+5. Once set up, you can begin analyzing text content by copying text with Ctrl+C and using the global keyboard shortcut (Ctrl+Alt+Shift+T)
 
 ## Development
 
 This is a proof-of-concept project built with:
 - Electron
 - Node.js
-- Ollama
+- Ollama. Integrates the Ollama binary for local LLM processing, with support for both development (system Ollama) and production (packaged Ollama) environments.
 
 ### Quick Start
 
