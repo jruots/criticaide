@@ -54,6 +54,8 @@ dist_electron/
 
 # Ollama executables
 *.exe
+*.dmg
+resources/ollama/runners/mac/ollama
 
 # Debug files
 report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json

@@ -6,7 +6,10 @@
   "scripts": {
     "start": "set NODE_ENV=development && electron .",
     "dev": "set NODE_ENV=development && electron .",
-    "build": "set NODE_ENV=production && electron-builder"
+    "build": "set NODE_ENV=production && electron-builder",
+    "start:mac": "NODE_ENV=development electron .",
+    "dev:mac": "NODE_ENV=development electron .",
+    "build:mac": "NODE_ENV=production electron-builder --mac"
   },
   "build": {
     "appId": "com.criticaide.app",
@@ -52,11 +55,20 @@
       "installerIcon": "resources/icons/icon.ico",
       "uninstallerIcon": "resources/icons/icon.ico"
     },
+    "mac": {
+      "target": [
+        {
+          "target": "dmg",
+          "arch": ["x64", "arm64"]
+        }
+      ],
+      "icon": "resources/icons/icon.icns",
+      "artifactName": "${productName}-${version}-${arch}.${ext}",
+      "category": "public.app-category.utilities",
+      "darkModeSupport": true
+    },
     "linux": {
       "target": "AppImage"
-    },
-    "mac": {
-      "target": "dmg"
     }
   },
   "author": "",
