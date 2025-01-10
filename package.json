@@ -9,7 +9,7 @@
     "build": "set NODE_ENV=production && electron-builder",
     "start:mac": "NODE_ENV=development electron .",
     "dev:mac": "NODE_ENV=development electron .",
-    "build:mac": "NODE_ENV=production electron-builder --mac"
+    "build:mac": "NODE_ENV=production electron-builder --mac --publish never"
   },
   "build": {
     "appId": "com.criticaide.app",
