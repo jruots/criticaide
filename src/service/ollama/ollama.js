@@ -147,7 +147,7 @@ class OllamaOrchestrator {
                 appDataPath = path.join(os.homedir(), "AppData", "Local", "ContentAnalyzer");
                 break;
             case "darwin":
-                exe = "ollama-darwin";
+                exe = "Ollama";
                 appDataPath = path.join(os.homedir(), "Library", "Application Support", "ContentAnalyzer");
                 break;
             case "linux":
@@ -254,22 +254,40 @@ class OllamaOrchestrator {
     
         return new Promise((resolve) => {
             if (os.platform() === "win32") {
-                // Use /T flag to kill tree and /F for force
+                // Windows-specific termination (unchanged)
                 exec(`taskkill /pid ${this.childProcess.pid} /f /t`, (err) => {
                     if (err) {
                         logger.error(`Failed to kill process ${this.childProcess.pid}:`, err);
                     } else {
                         logger.info(`Successfully terminated process ${this.childProcess.pid}`);
                     }
-                    // Verify termination
                     this.verifyProcessTermination();
                     resolve();
                 });
             } else {
-                this.childProcess.kill('SIGTERM');
-                logger.info('Ollama process terminated');
-                this.verifyProcessTermination();
-                resolve();
+                // Mac/Linux termination
+                try {
+                    process.kill(this.childProcess.pid, 'SIGTERM');
+                    logger.info('Sent SIGTERM to Ollama process');
+                    
+                    // Give it a moment to terminate gracefully
+                    setTimeout(() => {
+                        try {
+                            // Check if process still exists
+                            process.kill(this.childProcess.pid, 0);
+                            // If we get here, process still exists, force kill
+                            process.kill(this.childProcess.pid, 'SIGKILL');
+                            logger.info('Process required SIGKILL');
+                        } catch(e) {
+                            // Process no longer exists, which is good
+                            logger.info('Process terminated gracefully');
+                        }
+                        resolve();
+                    }, 1000);
+                } catch(e) {
+                    logger.warn('Error during process termination:', e);
+                    resolve();
+                }
             }
         });
     }
@@ -280,6 +298,14 @@ class OllamaOrchestrator {
                 if (!err && stdout.includes('ollama.exe')) {
                     logger.warn('Ollama process still running, attempting force kill');
                     exec('taskkill /IM ollama.exe /F');
+                }
+            });
+        } else {
+            // For Mac/Linux
+            exec('ps aux | grep ollama | grep -v grep', (err, stdout) => {
+                if (!err && stdout) {
+                    logger.warn('Ollama process still running, attempting force kill');
+                    exec('pkill -9 ollama');
                 }
             });
         }
