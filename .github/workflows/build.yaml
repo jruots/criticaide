@@ -1,0 +1,45 @@
+name: Build Criticaide
+
+on:
+  workflow_dispatch:  # Only manual triggering
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        os: [windows-latest, macos-latest]
+        
+    runs-on: ${{ matrix.os }}
+    
+    steps:
+    - uses: actions/checkout@v2
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v2
+      with:
+        node-version: '18'
+        
+    - name: Install dependencies
+      run: npm install
+      
+    - name: Build Windows
+      if: matrix.os == 'windows-latest'
+      run: npm run build
+      
+    - name: Build macOS
+      if: matrix.os == 'macos-latest'
+      run: npm run build:mac
+      
+    - name: Upload Windows artifacts
+      if: matrix.os == 'windows-latest'
+      uses: actions/upload-artifact@v2
+      with:
+        name: windows-build
+        path: dist/*.exe
+        
+    - name: Upload macOS artifacts
+      if: matrix.os == 'macos-latest'
+      uses: actions/upload-artifact@v2
+      with:
+        name: macos-build
+        path: dist/*.dmg
