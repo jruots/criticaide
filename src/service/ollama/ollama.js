@@ -302,10 +302,10 @@ class OllamaOrchestrator {
             });
         } else {
             // For Mac/Linux
-            exec('ps aux | grep ollama | grep -v grep', (err, stdout) => {
+            exec('ps aux | grep Ollama | grep -v grep', (err, stdout) => {
                 if (!err && stdout) {
                     logger.warn('Ollama process still running, attempting force kill');
-                    exec('pkill -9 ollama');
+                    exec('pkill -9 Ollama');
                 }
             });
         }
