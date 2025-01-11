@@ -1,3 +1,10 @@
+document.addEventListener('DOMContentLoaded', () => {
+    const headerSubtitle = document.querySelector('.header-subtitle');
+    const isMac = window.api.platform === 'darwin';
+    const shortcutText = isMac ? 'Cmd+Option+Shift+T' : 'Ctrl+Alt+Shift+T';
+    headerSubtitle.textContent = `Press ${shortcutText} to analyze copied text`;
+});
+
 window.api.receiveAnalysis((data) => {
     const resultsDiv = document.getElementById('results');
     
