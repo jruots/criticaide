@@ -51,12 +51,12 @@ function createWindow() {
 
     mainWindow.webContents.on('did-finish-load', () => {
         logger.info('Main window loaded successfully');
-        const shortcutInstructions = process.platform === 'darwin' 
-            ? 'Cmd+Alt+Shift+T'  // Mac
-            : 'Ctrl+Alt+Shift+T'; // Windows
+        const isMac = process.platform === 'darwin';
+        const copyKey = isMac ? 'Cmd+C' : 'Ctrl+C';
+        const shortcutKey = isMac ? 'Cmd+Option+Shift+T' : 'Ctrl+Alt+Shift+T';
         new Notification({
             title: 'Welcome!',
-            body: `App is running! To analyze text:\n1. Select text\n2. Press ${process.platform === 'darwin' ? 'Cmd+C' : 'Ctrl+C'}\n3. Press ${shortcutInstructions}`
+            body: `App is running! To analyze text:\n1. Select text\n2. Press ${copyKey}\n3. Press ${shortcutKey}`
         }).show();
     });
 }
@@ -321,14 +321,17 @@ function setupKeyboardShortcuts() {
                     ? (currentKeys.has('LEFT CTRL') || currentKeys.has('RIGHT CTRL'))
                     : (currentKeys.has('LEFT META') || currentKeys.has('RIGHT META'));
                 
-                const hasAlt = currentKeys.has('LEFT ALT') || currentKeys.has('RIGHT ALT');
+                // Updated Alt/Option check for Mac
+                const hasAltOrOption = isWindows
+                    ? (currentKeys.has('LEFT ALT') || currentKeys.has('RIGHT ALT'))
+                    : (currentKeys.has('LEFT OPTION') || currentKeys.has('RIGHT OPTION'));
+                
                 const hasShift = currentKeys.has('LEFT SHIFT') || currentKeys.has('RIGHT SHIFT');
                 const hasT = currentKeys.has('T');
                 
-                logger.debug(`Ctrl/Cmd: ${hasCtrlOrCmd}, Alt: ${hasAlt}, Shift: ${hasShift}, T: ${hasT}`);
+                logger.debug(`Ctrl/Cmd: ${hasCtrlOrCmd}, Alt/Option: ${hasAltOrOption}, Shift: ${hasShift}, T: ${hasT}`);
 
-                // Update the keyboard shortcut handler
-                if (hasCtrlOrCmd && hasAlt && hasShift && hasT) {
+                if (hasCtrlOrCmd && hasAltOrOption && hasShift && hasT) {
                     logger.info('Text capture hotkey detected!');
                     
                     setTimeout(() => {
@@ -338,7 +341,6 @@ function setupKeyboardShortcuts() {
                         const validation = isValidText(selectedText);
                         if (validation.valid) {
                             logger.info('Found valid text in clipboard:', selectedText.substring(0, 100) + '...');
-                            // Extract source before analysis
                             const source = extractSourceFromClipboard();
                             logger.debug(`Extracted source: ${source}`);
                             new Notification({
@@ -376,16 +378,6 @@ function setupKeyboardShortcuts() {
             logger.debug(`Updated keys held: ${Array.from(currentKeys).join(', ')}`);
         }
     });
-
-    // Add an alternative method using Electron's built-in shortcuts for Mac
-    if (process.platform === 'darwin') {
-        const { globalShortcut } = require('electron');
-        globalShortcut.register('Command+Alt+Shift+T', () => {
-            logger.info('Electron global shortcut triggered on Mac');
-            // This serves as a backup method if the main listener fails on Mac
-            // It will trigger the same code path
-        });
-    }
 
     logger.info('Keyboard shortcuts setup complete');
 }
