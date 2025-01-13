@@ -88,6 +88,9 @@ async function analyzeText(text, source='N/A') {
     logger.info('Starting text analysis...');
     logger.debug(`Text source: ${source}`);
 
+    // Send analysis-start event to renderer
+    mainWindow.webContents.send('analysis-start');
+
         // Check memory before starting analysis
         const memoryState = checkMemory();
         logger.info(`Memory state before analysis - Free: ${memoryState.freeMemGB}GB`);
