@@ -11,6 +11,41 @@ const path = require('path');
 const { exec } = require('child_process');
 const logger = require('../../utils/logger');
 
+const { systemPrompt: defaultSystem } = require('../../prompts/mistral7bgguf2b/system.js');
+const { analyzePrompt: defaultAnalyze } = require('../../prompts/mistral7bgguf2b/analyze.js');
+
+const analysisSchema = {
+    type: "object",
+    properties: {
+        potential_issues: {
+            type: "array",
+            items: {
+                type: "object",
+                properties: {
+                    type: { type: "string" },
+                    explanation: { type: "string" },
+                    severity: { 
+                        type: "string",
+                        enum: ["low", "medium", "high"]
+                    }
+                },
+                required: ["type", "explanation", "severity"]
+            }
+        },
+        credibility_score: {
+            type: "number",
+            minimum: 0,
+            maximum: 10
+        },
+        key_concerns: {
+            type: "array",
+            items: { type: "string" }
+        },
+        recommendation: { type: "string" }
+    },
+    required: ["potential_issues", "credibility_score", "key_concerns", "recommendation"]
+};
+
 let store;
 (async () => {
     const Store = await import('electron-store');
@@ -25,6 +60,30 @@ const MODEL_CONFIG = {
     },
     'phi': {
         tokenLimit: 2000,
+        safetyBuffer: 0.95,
+    },
+    'llama3.2:3b': {
+        tokenLimit: 131072,  // Using the actual context length from model metadata
+        safetyBuffer: 0.95,  // Using same safety buffer as other models
+    },
+    'gemma2:2b': {
+        tokenLimit: 8192,  // from context_length in metadata
+        safetyBuffer: 0.95,
+    },
+    'smallthinker': {
+        tokenLimit: 32768,  // from context_length in metadata
+        safetyBuffer: 0.95,
+    },
+    'qwen2.5:3b': {
+        tokenLimit: 32768,  // from context_length in metadata
+        safetyBuffer: 0.95,
+    },
+    'phi3.5': {
+        tokenLimit: 4096,  // from context_length in metadata
+        safetyBuffer: 0.95,
+    },
+    'hf.co/TheBloke/Mistral-7B-Instruct-v0.2-GGUF:Q2_K': {
+        tokenLimit: 4096,  // from context_length in metadata
         safetyBuffer: 0.95,
     }
 };
@@ -62,18 +121,30 @@ class OllamaOrchestrator {
 
     determineModel() {
         logger.setScope('Ollama:Model');
-        logger.info('Determining appropriate model based on system memory');
-        const totalMemoryGB = os.totalmem() / (1024 * 1024 * 1024);
-        logger.info(`System has ${totalMemoryGB.toFixed(2)}GB of RAM`);
-        
-        if (totalMemoryGB < 8) {
-            logger.info('Selecting phi-2 model due to system memory constraints');
-            return 'phi';
-        }
-        
-        logger.info('Selecting mistral model based on available system memory');
-        return 'mistral';
+        //logger.info('Using SmallThinker model');
+        //logger.info('Using Qwen2.5 model');
+        //logger.info('Using phi 3.5 model');
+        logger.info('Using mistral 7b gguf 2bit model');
+        //return 'smallthinker';
+        //return 'qwen2.5:3b';
+        //return 'phi3.5';
+        return 'hf.co/TheBloke/Mistral-7B-Instruct-v0.2-GGUF:Q2_K';
     }
+
+//    determineModel() {
+//        logger.setScope('Ollama:Model');
+//        logger.info('Determining appropriate model based on system memory');
+//        const totalMemoryGB = os.totalmem() / (1024 * 1024 * 1024);
+//        logger.info(`System has ${totalMemoryGB.toFixed(2)}GB of RAM`);
+//        
+//        if (totalMemoryGB < 8) {
+//            logger.info('Selecting phi-2 model due to system memory constraints');
+//            return 'phi';
+//        }
+//        
+//        logger.info('Selecting mistral model based on available system memory');
+//        return 'mistral';
+//    }
 
     async pullModel() {
         logger.setScope('Ollama:Pull');
@@ -147,7 +218,7 @@ class OllamaOrchestrator {
                 appDataPath = path.join(os.homedir(), "AppData", "Local", "ContentAnalyzer");
                 break;
             case "darwin":
-                exe = "Ollama";
+                exe = "ollama-darwin";
                 appDataPath = path.join(os.homedir(), "Library", "Application Support", "ContentAnalyzer");
                 break;
             case "linux":
@@ -302,7 +373,7 @@ class OllamaOrchestrator {
             });
         } else {
             // For Mac/Linux
-            exec('ps aux | grep Ollama | grep -v grep', (err, stdout) => {
+            exec('ps aux | grep ollama | grep -v grep', (err, stdout) => {
                 if (!err && stdout) {
                     logger.warn('Ollama process still running, attempting force kill');
                     exec('pkill -9 Ollama');
@@ -371,79 +442,24 @@ class OllamaOrchestrator {
                 };
             }
 
-            const systemPrompt = {
-                role: 'system',
-                content: `You are a misinformation and bias analysis tool. Analyze text for signs of manipulation, bias, and credibility issues. Be thorough and specific in identifying problems. Always respond in valid JSON format.`
-            };
+            const systemPrompt = defaultSystem;
     
-            const analyzePrompt = {
-                role: 'user',
-                content: `Analyze the following text for clear signs of misinformation or manipulation. Only flag serious issues that would genuinely mislead readers. For legitimate news reporting from established sources, it's perfectly fine to report "no significant issues found."
-    
-    Consider the source when analyzing credibility, though source information may not always be available. Examples of source types:
-    - News organizations (.com/news, known publishers)
-    - Social media platforms (twitter.com, facebook.com)
-    - Academic sources (.edu)
-    - Government sites (.gov)
-    - Blog posts or personal sites
-    
-    Text comes from this source: "${source}"
-    Text to analyze: "${text}"
-    
-    ONLY flag content if it shows clear signs of:
-    1. Inflammatory language designed to provoke emotional reactions ("SHOCKING!", "They don't want you to know...", excessive punctuation)
-    2. Conspiracy theory narratives or claims of hidden truths
-    3. Complete absence of sources for extraordinary claims
-    4. Clear attempts to push a specific agenda while disguising it as news
-    5. Blatant misrepresentation of facts or statistics
-    6. Obvious logical fallacies that undermine the main message
-    7. Direct calls to action based on fear or anger
-    
-    For mainstream news reporting, recognize that the following are NORMAL and should NOT be flagged:
-    - Attribution to official sources or reports
-    - Reporting on complex issues without exhaustive detail
-    - Focus on specific aspects of a larger issue
-    - Straightforward reporting of events or outcomes
-    - Use of quotes and statements from officials
-    - Basic context setting
-    
-    Provide your analysis in this JSON format:
-    {
-        "potential_issues": [
-            {
-                "type": "type of issue",
-                "explanation": "detailed explanation",
-                "severity": "low/medium/high"
-            }
-        ],
-        "credibility_score": <MUST BE A NUMBER 0-10, where 0 is completely unreliable and 10 is highly credible. Do not include any explanatory text, just the number>,
-        "key_concerns": ["list of only major concerns, if any"],
-        "recommendation": "brief recommendation for the reader"
-    }
-    
-    If the content appears to be legitimate reporting without significant red flags, respond with:
-    {
-        "potential_issues": [],
-        "credibility_score": <appropriate score based on source and content>,
-        "key_concerns": [],
-        "recommendation": "This appears to be straightforward reporting from a legitimate news source. Normal critical reading practices apply."
-    }
-    
-    Base your analysis purely on the content provided. Don't invent problems where none exist.`
-            };
+            const analyzePrompt = defaultAnalyze(source, text);
     
             const response = await this.ollama.chat({
                 model: this.currentModel,
                 messages: [systemPrompt, analyzePrompt],
+                format: analysisSchema,
                 options: {
-                    temperature: 0.7,
-                    top_k: 50,
-                    top_p: 0.95,
+                    temperature: 0.2, //0.7,
+                    top_k: 50, //50,
+                    top_p: 0.95, //0.95,
                     stream: false
                 }
             });
     
             try {
+                logger.debug('Raw model response:', response.message.content);
                 const analysis = JSON.parse(response.message.content);
                 
                 if (!this.isValidAnalysis(analysis)) {
