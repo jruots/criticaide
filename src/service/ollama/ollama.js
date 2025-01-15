@@ -11,8 +11,8 @@ const path = require('path');
 const { exec } = require('child_process');
 const logger = require('../../utils/logger');
 
-const { systemPrompt: defaultSystem } = require('../../prompts/mistral7bgguf2b/system.js');
-const { analyzePrompt: defaultAnalyze } = require('../../prompts/mistral7bgguf2b/analyze.js');
+const { systemPrompt: defaultSystem } = require('../../prompts/phi35/system.js');
+const { analyzePrompt: defaultAnalyze } = require('../../prompts/phi35/analyze.js');
 
 const analysisSchema = {
     type: "object",
@@ -123,12 +123,12 @@ class OllamaOrchestrator {
         logger.setScope('Ollama:Model');
         //logger.info('Using SmallThinker model');
         //logger.info('Using Qwen2.5 model');
-        //logger.info('Using phi 3.5 model');
-        logger.info('Using mistral 7b gguf 2bit model');
+        logger.info('Using phi 3.5 model');
+        //logger.info('Using mistral 7b gguf 2bit model');
         //return 'smallthinker';
         //return 'qwen2.5:3b';
-        //return 'phi3.5';
-        return 'hf.co/TheBloke/Mistral-7B-Instruct-v0.2-GGUF:Q2_K';
+        return 'phi3.5';
+        //return 'hf.co/TheBloke/Mistral-7B-Instruct-v0.2-GGUF:Q2_K';
     }
 
 //    determineModel() {

@@ -10,7 +10,7 @@ let ollamaService = null;
 let mainWindow;
 const keyboardListener = new GlobalKeyboardListener();
 
-const { analyzePrompt: defaultAnalyze } = require('./src/prompts/mistral7bgguf2b/analyze.js');
+const { analyzePrompt: defaultAnalyze } = require('./src/prompts/phi35/analyze.js');
 
 if (process.platform === 'win32') {
     app.setAppUserModelId('Criticaide');
