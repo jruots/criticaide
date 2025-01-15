@@ -63,3 +63,9 @@ report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
 # Optional caches
 .eslintcache
 .cache
+
+# Some of the prompt folders for models that were tested
+src/prompts/gemma2b
+src/prompts/llama323b
+src/prompts/qwen25
+src/prompts/smallthinker
