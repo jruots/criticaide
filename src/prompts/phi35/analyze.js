@@ -107,7 +107,6 @@ Provide analysis in this JSON format:
     "credibility_score": <number 0-10>,
     "key_concerns": ["list of major concerns"],
     "recommendation": "specific guidance for reader",
-    "trust_factors": ["positive elements that increase credibility"]
 }
 
 For legitimate content without significant issues, respond with:
@@ -116,7 +115,6 @@ For legitimate content without significant issues, respond with:
     "credibility_score": <appropriate score>,
     "key_concerns": [],
     "recommendation": "Clear explanation of why content appears reliable",
-    "trust_factors": ["list of positive credibility indicators"]
 }
 
 Base analysis ONLY on provided content. Do not invent issues. If uncertain, favor assuming legitimacy over flagging potential issues. Always explain your reasoning in the recommendation field.`
