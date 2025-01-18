@@ -191,56 +191,66 @@ class OllamaOrchestrator {
     async serve() {
         logger.setScope('Ollama:Serve');
         logger.info(`Starting serve process. Current model: ${this.currentModel}`);
+        
+        let serveType = null;
+        
+        // Try to find existing instance
         try {
             await this.ping();
             logger.info('Found existing Ollama instance');
             await this.pullModel();
-            return OllamaServeType.SYSTEM;
+            serveType = OllamaServeType.SYSTEM;
         } catch (err) {
-            logger.debug(`No existing Ollama instance found: ${err}`);
+            // Try to start system Ollama
+            try {
+                await this.execServe("ollama");
+                logger.info('Started system Ollama');
+                await this.pullModel();
+                serveType = OllamaServeType.SYSTEM;
+            } catch (sysErr) {
+                logger.debug(`System Ollama not available: ${sysErr}`);
+                
+                // Try packaged Ollama as last resort
+                // start the packaged ollama server
+                let exe = "";
+                let appDataPath = "";
+                switch (process.platform) {
+                    case "win32":
+                        exe = "ollama.exe";
+                        appDataPath = path.join(os.homedir(), "AppData", "Local", "ContentAnalyzer");
+                        break;
+                    case "darwin":
+                        exe = "ollama-darwin";
+                        appDataPath = path.join(os.homedir(), "Library", "Application Support", "ContentAnalyzer");
+                        break;
+                    case "linux":
+                        exe = "ollama-linux";
+                        appDataPath = path.join(os.homedir(), ".config", "ContentAnalyzer");
+                        break;
+                    default:
+                        const error = `Unsupported platform: ${process.platform}`;
+                        logger.error(error);
+                        throw new Error(error);
+                }
+            
+                const pathToBinary = path.join(process.resourcesPath, "bin", exe);
+                try {
+                    await this.execServe(pathToBinary, appDataPath);
+                    logger.info('Started packaged Ollama successfully');
+                    await this.pullModel();
+                    serveType = OllamaServeType.PACKAGED;
+                } catch (pkgErr) {
+                    logger.error('Failed to start packaged Ollama:', pkgErr);
+                    throw pkgErr;
+                }
+            }
         }
-    
-        try {
-            await this.execServe("ollama");
-            logger.info('Started system Ollama');
-            await this.pullModel();
-            return OllamaServeType.SYSTEM;
-        } catch (err) {
-            logger.debug(`System Ollama not available: ${err}`);
+        
+        if (!serveType) {
+            throw new Error('Failed to initialize Ollama');
         }
-    
-        // start the packaged ollama server
-        let exe = "";
-        let appDataPath = "";
-        switch (process.platform) {
-            case "win32":
-                exe = "ollama.exe";
-                appDataPath = path.join(os.homedir(), "AppData", "Local", "ContentAnalyzer");
-                break;
-            case "darwin":
-                exe = "ollama-darwin";
-                appDataPath = path.join(os.homedir(), "Library", "Application Support", "ContentAnalyzer");
-                break;
-            case "linux":
-                exe = "ollama-linux";
-                appDataPath = path.join(os.homedir(), ".config", "ContentAnalyzer");
-                break;
-            default:
-                const error = `Unsupported platform: ${process.platform}`;
-                logger.error(error);
-                throw new Error(error);
-        }
-    
-        const pathToBinary = path.join(process.resourcesPath, "bin", exe);
-        try {
-            await this.execServe(pathToBinary, appDataPath);
-            logger.info('Started packaged Ollama successfully');
-            await this.pullModel();
-            return OllamaServeType.PACKAGED;
-        } catch (err) {
-            logger.error('Failed to start packaged Ollama:', err);
-            throw new Error(`Failed to start Ollama: ${err}`);
-        }
+        
+        return serveType;
     }
 
     async execServe(path, appDataDirectory) {
