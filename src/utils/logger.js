@@ -151,6 +151,30 @@ class Logger {
             this.error('Failed to cleanup error dumps:', error);
         }
     }
+
+    // Add this method to the Logger class
+    debugShortcut(message, data) {
+        const previousScope = this.currentScope;
+        this.setScope('Keyboard');  // Force keyboard scope for shortcut logging
+        
+        if (process.env.NODE_ENV === 'development') {
+            this.debug(message, data);
+        } else {
+            this.info(message, data);
+        }
+        
+        this.setScope(previousScope);  // Restore previous scope
+    }
+
+    // Optionally, add this helper method if you want more control
+    logKeyboardEvent(eventType, keyInfo, currentKeys) {
+        if (process.env.NODE_ENV === 'development') {
+            this.debug(`Keyboard event - ${eventType}: ${keyInfo}`, {
+                keys: Array.from(currentKeys),
+                platform: process.platform
+            });
+        }
+    }
 }
 
 // Export a singleton instance

@@ -6,6 +6,8 @@ const logger = require('./src/utils/logger');
 const os = require('os');
 const { checkMemory } = require('./src/utils/memory');
 let ollamaService = null;
+const MAX_DETAILED_LOGGING_ATTEMPTS = 3;  // Number of attempts to log in detail
+let shortcutAttemptCount = 0;  // Counter for shortcut attempts
 
 let mainWindow;
 const keyboardListener = new GlobalKeyboardListener();
@@ -257,36 +259,38 @@ function setupKeyboardShortcuts() {
     let currentKeys = new Set();
 
     keyboardListener.addListener(function (e) {
-        if (e.state === 'DOWN') {
-            currentKeys.add(e.name);
-            logger.debug(`Key pressed: ${e.name}`);
+        // Only track keyboard events (not mouse)
+        if (e.name.startsWith('MOUSE')) {
+            return;
+        }
+
+        const handleKeyboardEvent = () => {
+            logger.setScope('Keyboard');
             
-            // More verbose logging for shortcut detection
-            if (currentKeys.size >= 3) {
-                logger.debug('Checking shortcut combination...');
-                logger.debug(`Current keys: ${Array.from(currentKeys).join(', ')}`);
+            if (e.state === 'DOWN') {
+                currentKeys.add(e.name);
                 
-                // Handle both Windows and Mac keyboard shortcuts
+                // Check if this might be part of our shortcut
                 const isWindows = process.platform === 'win32';
                 const isMac = process.platform === 'darwin';
                 
-                // Check for Control/Command key
                 const hasCtrlOrCmd = isWindows 
                     ? (currentKeys.has('LEFT CTRL') || currentKeys.has('RIGHT CTRL'))
                     : (currentKeys.has('LEFT META') || currentKeys.has('RIGHT META'));
                 
-                // Updated Alt/Option check for Mac
                 const hasAltOrOption = isWindows
                     ? (currentKeys.has('LEFT ALT') || currentKeys.has('RIGHT ALT'))
                     : (currentKeys.has('LEFT OPTION') || currentKeys.has('RIGHT OPTION'));
                 
                 const hasShift = currentKeys.has('LEFT SHIFT') || currentKeys.has('RIGHT SHIFT');
                 const hasT = currentKeys.has('T');
-                
-                logger.debug(`Ctrl/Cmd: ${hasCtrlOrCmd}, Alt/Option: ${hasAltOrOption}, Shift: ${hasShift}, T: ${hasT}`);
 
-                if (hasCtrlOrCmd && hasAltOrOption && hasShift && hasT) {
-                    logger.info('Text capture hotkey detected!');
+                // Check for shortcut combination first
+                const isFullShortcut = hasCtrlOrCmd && hasAltOrOption && hasShift && hasT;
+                
+                if (isFullShortcut) {
+                    shortcutAttemptCount++;
+                    logger.info(`Shortcut attempt ${shortcutAttemptCount} detected`);
                     
                     setTimeout(() => {
                         const selectedText = clipboard.readText();
@@ -324,13 +328,33 @@ function setupKeyboardShortcuts() {
                             }).show();
                         }
                     }, 100);
+                } else if (shortcutAttemptCount < MAX_DETAILED_LOGGING_ATTEMPTS) {
+                    // During initial attempts, log all keys for debugging
+                    logger.debugShortcut(
+                        `Detailed key event - Key pressed: ${e.name}, ` +
+                        `Current keys: [${Array.from(currentKeys).join(', ')}], ` +
+                        `Platform: ${process.platform}`
+                    );
+                } else if (hasCtrlOrCmd || hasAltOrOption || hasShift || hasT) {
+                    // After initial attempts, only log potential shortcut keys
+                    logger.debug(`Potential shortcut key: ${e.name}`);
+                }
+            } else if (e.state === 'UP') {
+                const keyName = e.name;
+                currentKeys.delete(keyName);
+                
+                // Only log during initial attempts or if it's a shortcut-related key
+                if (shortcutAttemptCount < MAX_DETAILED_LOGGING_ATTEMPTS) {
+                    logger.debugShortcut(
+                        `Detailed key event - Key released: ${keyName}, ` +
+                        `Remaining keys: [${Array.from(currentKeys).join(', ')}], ` +
+                        `Platform: ${process.platform}`
+                    );
                 }
             }
-        } else if (e.state === 'UP') {
-            logger.debug(`Key released: ${e.name}`);
-            currentKeys.delete(e.name);
-            logger.debug(`Updated keys held: ${Array.from(currentKeys).join(', ')}`);
-        }
+        };
+        
+        handleKeyboardEvent();
     });
 
     logger.info('Keyboard shortcuts setup complete');
@@ -351,6 +375,8 @@ app.whenReady().then(async () => {
         
         createWindow();
         setupKeyboardShortcuts();
+        // Reset shortcut attempt counter on startup
+        shortcutAttemptCount = 0;
         
         // Add notification about selected model
         new Notification({
