@@ -2,6 +2,7 @@ const electronLog = require('electron-log');
 const path = require('path');
 const fs = require('fs');
 const { app } = require('electron');
+const os = require('os');  // Add this line at the top with other imports
 
 class Logger {
     constructor() {

@@ -45,6 +45,15 @@ document.addEventListener('DOMContentLoaded', () => {
         "Scanning persuasion patterns...",
         "Identifying cognitive shortcuts..."
     ];
+
+        // In renderer.js, add to the top of the file where other constants are defined:
+    const setupFlavorTexts = [
+        "Initializing Criticaide...",
+        "Setting up analysis engine...",
+        "Preparing language model...",
+        "Configuring system...",
+        "Almost ready...",
+    ];
     
     let currentText = 0;
     const textElement = loadingDiv.querySelector('.loading-text');
@@ -130,5 +139,41 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         resultsDiv.innerHTML = html;
+    });
+
+    window.api.onInitialSetup(() => {
+        const resultsDiv = document.getElementById('results');
+        const loadingDiv = document.getElementById('loading');
+        
+        resultsDiv.style.display = 'none';
+        loadingDiv.style.display = 'flex';
+        
+        // Start with setup messages
+        currentText = 0;
+        textElement.textContent = setupFlavorTexts[0];
+        textInterval = setInterval(() => {
+            currentText = (currentText + 1) % setupFlavorTexts.length;
+            textElement.textContent = setupFlavorTexts[currentText];
+        }, 3000);
+    });
+    
+    window.api.onSetupComplete(() => {
+        const resultsDiv = document.getElementById('results');
+        const loadingDiv = document.getElementById('loading');
+        
+        clearInterval(textInterval);
+        loadingDiv.style.display = 'none';
+        resultsDiv.style.display = 'block';
+    });
+    
+    window.api.onSetupError((error) => {
+        const resultsDiv = document.getElementById('results');
+        resultsDiv.innerHTML = `
+            <div class="error-message">
+                <h3>Setup Error</h3>
+                <p>Failed to initialize Criticaide: ${error}</p>
+                <p>Please try restarting the application. If the problem persists, check the logs.</p>
+            </div>
+        `;
     });
 });

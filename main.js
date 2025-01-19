@@ -14,6 +14,8 @@ const keyboardListener = new GlobalKeyboardListener();
 
 const { analyzePrompt: defaultAnalyze } = require('./src/prompts/phi35/analyze.js');
 
+let store = null;
+
 if (process.platform === 'win32') {
     app.setAppUserModelId('Criticaide');
 }
@@ -26,6 +28,7 @@ function logSystemInfo() {
     logger.info(`System memory - Total: ${totalMemGB}GB, Free: ${freeMemGB}GB`);
 }
 
+// In main.js, modify createWindow():
 function createWindow() {
     logger.setScope('Window');
     logger.info('Creating main window...');
@@ -41,13 +44,12 @@ function createWindow() {
             nodeIntegration: false,
             contextIsolation: true,
             preload: path.join(__dirname, 'preload.js'),
-            devTools: isDev // Only enable DevTools in development
+            devTools: isDev
         }
     });
 
     mainWindow.loadFile('src/index.html');
     
-    // Only open DevTools in development
     if (isDev) {
         mainWindow.webContents.openDevTools();
         logger.debug('DevTools opened for development');
@@ -55,13 +57,11 @@ function createWindow() {
 
     mainWindow.webContents.on('did-finish-load', () => {
         logger.info('Main window loaded successfully');
-        const isMac = process.platform === 'darwin';
-        const copyKey = isMac ? 'Cmd+C' : 'Ctrl+C';
-        const shortcutKey = isMac ? 'Cmd+Option+Shift+T' : 'Ctrl+Alt+Shift+T';
-        new Notification({
-            title: 'Welcome!',
-            body: `App is running! To analyze text:\n1. Select text\n2. Press ${copyKey}\n3. Press ${shortcutKey}`
-        }).show();
+        
+        // Only show setup screen if this is first startup
+        if (!store.get('initialModelDownloaded')) {
+            mainWindow.webContents.send('show-initial-setup');
+        }
     });
 }
 
@@ -360,40 +360,64 @@ function setupKeyboardShortcuts() {
     logger.info('Keyboard shortcuts setup complete');
 }
 
-// Modify the app.whenReady() handler
+// In main.js, modify app.whenReady():
+// Modify the app.whenReady handler
 app.whenReady().then(async () => {
     try {
         logger.setScope('Startup');
         logger.info('Starting application...');
         logSystemInfo();
         
+        // Initialize store first
+        const Store = await import('electron-store');
+        store = new Store.default();
+        
+        // Now create window with initialized store
+        createWindow(store);
+        
+        // If this isn't first startup, show the main screen immediately
+        if (store.get('initialModelDownloaded')) {
+            const isMac = process.platform === 'darwin';
+            const copyKey = isMac ? 'Cmd+C' : 'Ctrl+C';
+            const shortcutKey = isMac ? 'Cmd+Option+Shift+T' : 'Ctrl+Alt+Shift+T';
+            new Notification({
+                title: 'Welcome!',
+                body: `App is ready! To analyze text:\n1. Select text\n2. Press ${copyKey}\n3. Press ${shortcutKey}`
+            }).show();
+        }
+ 
+        // Rest of initialization
         ollamaService = await OllamaOrchestrator.getOllama();
         logger.info('OllamaOrchestrator initialized');
         
         const serveType = await ollamaService.serve();
         logger.info(`Ollama started with type: ${serveType}`);
         
-        createWindow();
         setupKeyboardShortcuts();
-        // Reset shortcut attempt counter on startup
         shortcutAttemptCount = 0;
         
-        // Add notification about selected model
-        new Notification({
-            title: 'Model Status',
-            body: `Using ${ollamaService.currentModel} model for analysis`
-        }).show();
+        // Send completion event regardless of initialModelDownloaded state
+        mainWindow.webContents.send('initial-setup-complete');
+        
+        // Now set the flag if this was first time setup
+        if (!store.get('initialModelDownloaded')) {
+            store.set('initialModelDownloaded', true);
+        }
         
     } catch (error) {
         logger.error('Failed to start:', error);
-        logger.createErrorDump(error);  // NEW: Create error dump for startup failures
+        logger.createErrorDump(error);
+        
+        if (mainWindow) {
+            mainWindow.webContents.send('initial-setup-error', error.message);
+        }
         
         new Notification({
             title: 'Criticaide',
             body: 'Error starting application. Please check logs.'
         }).show();
     }
-});
+ });
 
 // Add before app.quit
 app.on('will-quit', async (event) => {
