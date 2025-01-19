@@ -385,7 +385,7 @@ app.whenReady().then(async () => {
                 body: `App is ready! To analyze text:\n1. Select text\n2. Press ${copyKey}\n3. Press ${shortcutKey}`
             }).show();
         }
-
+ 
         // Rest of initialization
         ollamaService = await OllamaOrchestrator.getOllama();
         logger.info('OllamaOrchestrator initialized');
@@ -396,8 +396,12 @@ app.whenReady().then(async () => {
         setupKeyboardShortcuts();
         shortcutAttemptCount = 0;
         
+        // Send completion event regardless of initialModelDownloaded state
+        mainWindow.webContents.send('initial-setup-complete');
+        
+        // Now set the flag if this was first time setup
         if (!store.get('initialModelDownloaded')) {
-            mainWindow.webContents.send('initial-setup-complete');
+            store.set('initialModelDownloaded', true);
         }
         
     } catch (error) {
@@ -413,7 +417,7 @@ app.whenReady().then(async () => {
             body: 'Error starting application. Please check logs.'
         }).show();
     }
-});
+ });
 
 // Add before app.quit
 app.on('will-quit', async (event) => {

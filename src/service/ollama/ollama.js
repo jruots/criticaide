@@ -148,43 +148,59 @@ class OllamaOrchestrator {
 
     async pullModel() {
         logger.setScope('Ollama:Pull');
-        try {
-            logger.info(`Pulling model: ${this.currentModel}`);
-            const modelToUse = this.currentModel;
-           
+        const MAX_RETRIES = 3;
+        const INITIAL_DELAY = 1000; // 1 second
+
+        for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
             try {
-                const response = await fetch(`${this.host}/api/tags`);
-                const data = await response.json();
-                const modelExists = data.models?.some(model => model.name === modelToUse);
-               
-                if (!modelExists && !store.get('initialModelDownloaded')) {
-                    logger.info(`Model ${modelToUse} not found, starting download...`);
-                    const { Notification } = require('electron');
-                    new Notification({
-                        title: 'Model Download',
-                        body: `First time startup: Downloading ${modelToUse} model. This may take a few minutes depending on your internet connection.`
-                    }).show();
-                    store.set('initialModelDownloaded', true);
+                logger.info(`Pulling model: ${this.currentModel}`);
+                const modelToUse = this.currentModel;
+            
+                try {
+                    const response = await fetch(`${this.host}/api/tags`);
+                    const data = await response.json();
+                    const modelExists = data.models?.some(model => model.name === modelToUse);
+                
+                    if (!modelExists && !store.get('initialModelDownloaded')) {
+                        logger.info(`Model ${modelToUse} not found, starting download...`);
+                        const { Notification } = require('electron');
+                        new Notification({
+                            title: 'Model Download',
+                            body: `First time startup: Downloading ${modelToUse} model. This may take a few minutes depending on your internet connection.`
+                        }).show();
+                        store.set('initialModelDownloaded', true);
+                    }
+                } catch (error) {
+                    logger.warn('Error checking model existence:', error);
+                    // Continue with pull anyway
                 }
-            } catch (error) {
-                logger.warn('Error checking model existence:', error);
-                // Continue with pull anyway
+            
+                logger.info(`Starting model pull for ${modelToUse} (Attempt ${attempt}/${MAX_RETRIES})`);
+                const stream = await this.ollama.pull({
+                    model: modelToUse,
+                    stream: true
+                });
+            
+                for await (const part of stream) {
+                    logger.debug('Pull progress:', part);
+                }
+            
+                logger.info('Model pull complete');
+                return; // Success - exit the retry loop
+
+            } catch (err) {
+                logger.error('Failed to pull model:', err);
+                
+                if (attempt === MAX_RETRIES) {
+                    logger.error('Max retries reached, giving up');
+                    throw err;  // Maintain original error throwing
+                }
+
+                // Calculate delay with exponential backoff (1s, 2s, 4s)
+                const delay = INITIAL_DELAY * Math.pow(2, attempt - 1);
+                logger.info(`Waiting ${delay}ms before retry ${attempt + 1}...`);
+                await new Promise(resolve => setTimeout(resolve, delay));
             }
-           
-            logger.info(`Starting model pull for ${modelToUse}`);
-            const stream = await this.ollama.pull({
-                model: modelToUse,
-                stream: true
-            });
-           
-            for await (const part of stream) {
-                logger.debug('Pull progress:', part);
-            }
-           
-            logger.info('Model pull complete');
-        } catch (err) {
-            logger.error('Failed to pull model:', err);
-            throw err;
         }
     }
 
