@@ -2,12 +2,20 @@ const electronLog = require('electron-log');
 const path = require('path');
 const fs = require('fs');
 const { app } = require('electron');
-const os = require('os');  // Add this line at the top with other imports
+const os = require('os');
 
 class Logger {
     constructor() {
-        // Set up log directory
-        const userDataPath = app.getPath('userData');
+        // Set up log directory with explicit Mac path
+        let userDataPath;
+        if (process.platform === 'darwin') {
+            userDataPath = path.join(os.homedir(), 'Documents', 'Criticaide');
+            // Log the path choice for debugging
+            console.log('Setting up Mac-specific log path:', userDataPath);
+        } else {
+            userDataPath = app.getPath('userData');
+        }
+
         this.logDir = path.join(userDataPath, 'logs');
         this.currentLogPath = path.join(this.logDir, 'current.log');
         this.previousLogPath = path.join(this.logDir, 'previous.log');
@@ -16,22 +24,28 @@ class Logger {
         // Ensure directories exist
         if (!fs.existsSync(this.logDir)) {
             fs.mkdirSync(this.logDir, { recursive: true });
+            console.log('Created log directory at:', this.logDir);
         }
         if (!fs.existsSync(this.errorDumpsDir)) {
             fs.mkdirSync(this.errorDumpsDir, { recursive: true });
         }
 
-        // Rotate logs on startup
+        // Log the final paths when starting up
+        console.log('Log paths:', {
+            logDir: this.logDir,
+            currentLog: this.currentLogPath,
+            previousLog: this.previousLogPath,
+            errorDumps: this.errorDumpsDir
+        });
+
+        // Rest of the constructor remains the same
         this.rotateLogsOnStartup();
 
-        // Configure electron-log
         electronLog.transports.file.resolvePathFn = () => this.currentLogPath;
         electronLog.transports.file.format = '[{y}-{m}-{d} {h}:{i}:{s}.{ms}] [{level}] [{scope}] {text}';
         
-        // Remove default console transport as we'll handle it ourselves in development
         electronLog.transports.console.level = false;
         
-        // Initialize scope
         this.currentScope = 'Main';
     }
 
