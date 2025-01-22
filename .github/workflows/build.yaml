@@ -1,26 +1,54 @@
 name: Build Criticaide
-
 on:
   workflow_dispatch:  # Only manual triggering
 
 jobs:
   build:
     runs-on: macos-latest
-    
+   
     steps:
     - uses: actions/checkout@v4
-    
+   
     - name: Setup Node.js
       uses: actions/setup-node@v4
       with:
         node-version: '18'
-        
+       
     - name: Install dependencies
       run: npm install
+
+    - name: Create build directory
+      run: mkdir -p build
       
+    - name: Create entitlements file
+      run: |
+        cat > build/entitlements.mac.plist << 'EOL'
+        <?xml version="1.0" encoding="UTF-8"?>
+        <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+        <plist version="1.0">
+          <dict>
+            <key>com.apple.security.cs.allow-jit</key>
+            <true/>
+            <key>com.apple.security.cs.allow-unsigned-executable-memory</key>
+            <true/>
+            <key>com.apple.security.cs.disable-library-validation</key>
+            <true/>
+            <key>com.apple.security.cs.allow-dyld-environment-variables</key>
+            <true/>
+            <key>com.apple.security.files.user-selected.read-write</key>
+            <true/>
+            <key>com.apple.security.inherit</key>
+            <true/>
+          </dict>
+        </plist>
+        EOL
+
+    - name: Set Ollama binary permissions
+      run: chmod +x resources/ollama/runners/mac/ollama-darwin
+     
     - name: Build macOS
       run: npm run build:mac
-      
+     
     - name: Upload macOS artifacts
       uses: actions/upload-artifact@v4
       with:

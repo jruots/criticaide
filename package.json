@@ -9,6 +9,7 @@
     "build": "set NODE_ENV=production && electron-builder",
     "start:mac": "NODE_ENV=development electron .",
     "dev:mac": "NODE_ENV=development electron .",
+    "prebuild:mac": "chmod +x resources/ollama/runners/mac/ollama-darwin",
     "build:mac": "NODE_ENV=production electron-builder --mac --publish never"
   },
   "build": {
@@ -56,6 +57,9 @@
       "uninstallerIcon": "resources/icons/icon.ico"
     },
     "mac": {
+      "hardenedRuntime": true,
+      "entitlements": "build/entitlements.mac.plist",
+      "entitlementsInherit": "build/entitlements.mac.plist",
       "target": [
         {
           "target": "dmg",
@@ -69,9 +73,6 @@
       "artifactName": "${productName}-${version}-${arch}.${ext}",
       "category": "public.app-category.utilities",
       "darkModeSupport": true
-    },
-    "linux": {
-      "target": "AppImage"
     }
   },
   "author": "",
