@@ -24,11 +24,14 @@
     ],
     "extraResources": [
       {
-        "from": "resources/ollama/runners/${os}",
+        "from": "resources/bin/${os}",
         "to": "bin",
-        "filter": [
-          "**/*"
-        ]
+        "filter": ["**/*"]
+      },
+      {
+        "from": "resources/models",
+        "to": "models",
+        "filter": ["**/*"]
       }
     ],
     "asarUnpack": [
