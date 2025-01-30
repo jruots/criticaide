@@ -49,6 +49,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // In renderer.js, add to the top of the file where other constants are defined:
     const setupFlavorTexts = [
         "Initializing Criticaide...",
+        "Initializing GPU acceleration...",
         "Setting up analysis engine...",
         "Preparing language model...",
         "Configuring system...",
@@ -172,6 +173,42 @@ document.addEventListener('DOMContentLoaded', () => {
             <div class="error-message">
                 <h3>Setup Error</h3>
                 <p>Failed to initialize Criticaide: ${error}</p>
+                <p>Please try restarting the application. If the problem persists, check the logs.</p>
+            </div>
+        `;
+    });
+
+    window.api.onServerStarting(() => {
+        const resultsDiv = document.getElementById('results');
+        const loadingDiv = document.getElementById('loading');
+        
+        resultsDiv.style.display = 'none';
+        loadingDiv.style.display = 'flex';
+        
+        // Start with setup messages
+        currentText = 0;
+        textElement.textContent = setupFlavorTexts[0];
+        textInterval = setInterval(() => {
+            currentText = (currentText + 1) % setupFlavorTexts.length;
+            textElement.textContent = setupFlavorTexts[currentText];
+        }, 3000);
+    });
+    
+    window.api.onServerReady(() => {
+        const resultsDiv = document.getElementById('results');
+        const loadingDiv = document.getElementById('loading');
+        
+        clearInterval(textInterval);
+        loadingDiv.style.display = 'none';
+        resultsDiv.style.display = 'block';
+    });
+    
+    window.api.onServerError((error) => {
+        const resultsDiv = document.getElementById('results');
+        resultsDiv.innerHTML = `
+            <div class="error-message">
+                <h3>Server Error</h3>
+                <p>Failed to start llama.cpp server: ${error}</p>
                 <p>Please try restarting the application. If the problem persists, check the logs.</p>
             </div>
         `;

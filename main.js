@@ -55,10 +55,8 @@ function createWindow() {
 
     mainWindow.webContents.on('did-finish-load', () => {
         logger.info('Main window loaded successfully');
-        
-        if (!store.get('initialModelDownloaded')) {
-            mainWindow.webContents.send('show-initial-setup');
-        }
+        // Send server starting event after window is loaded
+        mainWindow.webContents.send('server-starting');
     });
 }
 
@@ -346,37 +344,35 @@ app.whenReady().then(async () => {
         
         createWindow(store);
         
-        if (store.get('initialModelDownloaded')) {
-            const isMac = process.platform === 'darwin';
-            const copyKey = isMac ? 'Cmd+C' : 'Ctrl+C';
-            const shortcutKey = isMac ? 'Cmd+Option+Shift+T' : 'Ctrl+Alt+Shift+T';
-            new Notification({
-                title: 'Welcome!',
-                body: `App is ready! To analyze text:\n1. Select text\n2. Press ${copyKey}\n3. Press ${shortcutKey}`
-            }).show();
-        }
-    
         llamaService = new LlamaCppService();
         logger.info('LlamaCpp service initialized');
         
         await llamaService.serve();
         logger.info('LlamaCpp server started');
         
+        // Server is ready - send event only if window exists
+        if (mainWindow?.webContents) {
+            mainWindow.webContents.send('server-ready');
+        }
+        
+        // Show welcome notification
+        const isMac = process.platform === 'darwin';
+        const copyKey = isMac ? 'Cmd+C' : 'Ctrl+C';
+        const shortcutKey = isMac ? 'Cmd+Option+Shift+T' : 'Ctrl+Alt+Shift+T';
+        new Notification({
+            title: 'Welcome!',
+            body: `App is ready! To analyze text:\n1. Select text\n2. Press ${copyKey}\n3. Press ${shortcutKey}`
+        }).show();
+        
         setupKeyboardShortcuts();
         shortcutAttemptCount = 0;
-        
-        mainWindow.webContents.send('initial-setup-complete');
-        
-        if (!store.get('initialModelDownloaded')) {
-            store.set('initialModelDownloaded', true);
-        }
         
     } catch (error) {
         logger.error('Failed to start:', error);
         logger.createErrorDump(error);
         
         if (mainWindow) {
-            mainWindow.webContents.send('initial-setup-error', error.message);
+            mainWindow.webContents.send('server-error', error.message);
         }
         
         new Notification({

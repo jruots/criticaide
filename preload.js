@@ -21,4 +21,17 @@ contextBridge.exposeInMainWorld('api', {
     onSetupError: (callback) => {
         ipcRenderer.on('initial-setup-error', (event, error) => callback(error));
     },
+
+    // New server events
+    onServerStarting: (callback) => {
+        ipcRenderer.on('server-starting', () => callback());
+    },
+
+    onServerReady: (callback) => {
+        ipcRenderer.on('server-ready', () => callback());
+    },
+
+    onServerError: (callback) => {
+        ipcRenderer.on('server-error', (event, error) => callback(error));
+    },
 });

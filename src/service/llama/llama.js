@@ -86,7 +86,7 @@ class LlamaCppService {
         const args = [
             '--model', modelPath,
             '--ctx-size', '4096',
-            '--n-gpu-layers', '35'
+            '--n-gpu-layers', '99'
         ];
 
         logger.info(`Starting server with binary: ${binaryPath}`);
