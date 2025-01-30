@@ -6,8 +6,10 @@
   "scripts": {
     "start": "cross-env NODE_ENV=development electron .",
     "dev": "cross-env NODE_ENV=development electron .",
+    "prebuild": "rimraf dist",
     "build": "set NODE_ENV=production && electron-builder",
-    "build:win": "set NODE_ENV=production && electron-builder --win --publish never",
+    "prebuild:win": "rimraf dist",
+    "build:win": "set DEBUG=electron-builder && set NODE_ENV=production && electron-builder --win --publish never",
     "start:mac": "NODE_ENV=development electron .",
     "dev:mac": "NODE_ENV=development electron .",
     "prebuild:mac": "chmod +x resources/ollama/runners/mac/ollama-darwin",
@@ -16,10 +18,15 @@
   "build": {
     "appId": "com.criticaide.app",
     "productName": "Criticaide",
-    "compression": "maximum",
+    "compression": "store",
     "directories": {
-      "output": "dist"
+      "output": "C:\\temp\\electron-build",
+      "buildResources": "build",
+      "app": "."
     },
+    "asarUnpack": [
+      "resources/models/*.gguf"
+    ],
     "files": [
       "**/*",
       "!resources/llama/binaries/**/*",
@@ -83,7 +90,8 @@
   "devDependencies": {
     "cross-env": "^7.0.3",
     "electron": "^28.0.0",
-    "electron-builder": "^24.9.1"
+    "electron-builder": "^24.9.1",
+    "rimraf": "^6.0.1"
   },
   "dependencies": {
     "electron-log": "^5.2.4",

@@ -27,15 +27,15 @@ class LlamaCppService {
         }
         return path.join(process.resourcesPath, 'models', 'Phi-3.5-mini-instruct-Q4_K_M.gguf');
     }
-
+    
     async getBinaryPath() {
         if (this.isDev) {
             const binaryDir = path.join(process.cwd(), 'resources', 'llama', 'binaries', 'win');
             return path.join(binaryDir, 'llama-server.exe');
         }
-        return path.join(process.resourcesPath, 'bin', process.platform === 'win32' ? 'llama-server.exe' : 'llama-server');
+        return path.join(process.resourcesPath, 'bin', 'llama-server.exe');
     }
-
+    
     async getBinaryDir() {
         if (this.isDev) {
             return path.join(process.cwd(), 'resources', 'llama', 'binaries', 'win');
