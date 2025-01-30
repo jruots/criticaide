@@ -7,6 +7,7 @@
     "start": "cross-env NODE_ENV=development electron .",
     "dev": "cross-env NODE_ENV=development electron .",
     "build": "set NODE_ENV=production && electron-builder",
+    "build:win": "set NODE_ENV=production && electron-builder --win --publish never",
     "start:mac": "NODE_ENV=development electron .",
     "dev:mac": "NODE_ENV=development electron .",
     "prebuild:mac": "chmod +x resources/ollama/runners/mac/ollama-darwin",
@@ -15,27 +16,26 @@
   "build": {
     "appId": "com.criticaide.app",
     "productName": "Criticaide",
+    "compression": "maximum",
     "directories": {
       "output": "dist"
     },
     "files": [
       "**/*",
-      "!resources/ollama/runners/*"
+      "!resources/llama/binaries/**/*",
+      "!resources/llama/models/**/*"
     ],
     "extraResources": [
       {
-        "from": "resources/bin/${os}",
+        "from": "resources/llama/binaries/${os}",
         "to": "bin",
         "filter": ["**/*"]
       },
       {
-        "from": "resources/models",
+        "from": "resources/llama/models",
         "to": "models",
         "filter": ["**/*"]
       }
-    ],
-    "asarUnpack": [
-      "resources/ollama/runners/*"
     ],
     "win": {
       "target": [
@@ -49,7 +49,7 @@
       "icon": "resources/icons/icon.ico",
       "artifactName": "${productName}-Setup-${version}.${ext}"
     },
-    "nsisWeb": {
+    "nsis": {
       "oneClick": false,
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
@@ -78,8 +78,8 @@
       "darkModeSupport": true
     }
   },
-  "author": "",
-  "license": "ISC",
+  "author": "jruots",
+  "license": "MIT",
   "devDependencies": {
     "cross-env": "^7.0.3",
     "electron": "^28.0.0",
@@ -88,7 +88,6 @@
   "dependencies": {
     "electron-log": "^5.2.4",
     "electron-store": "^10.0.0",
-    "node-global-key-listener": "^0.3.0",
-    "ollama": "^0.5.11"
+    "node-global-key-listener": "^0.3.0"
   }
 }
