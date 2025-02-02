@@ -1,6 +1,6 @@
-// src/service/llama/llama.js
 const { spawn } = require('child_process');
 const path = require('path');
+const fs = require('fs/promises');
 const logger = require('../../utils/logger');
 const { checkMemory } = require('../../utils/memory');
 const { analyzePrompt: defaultAnalyze } = require('../../prompts/phi35/analyze.js');
@@ -11,6 +11,8 @@ const TOKEN_MULTIPLIER = 2;  // Conservative estimate for words to tokens
 const CONTEXT_SIZE = 4096;
 const SAFETY_BUFFER = 0.95;  // 95% of context size to be safe
 const MAX_TOKENS = Math.floor(CONTEXT_SIZE * SAFETY_BUFFER);
+const MODEL_REPO = 'MaziyarPanahi/Phi-3.5-mini-instruct-GGUF';
+const MODEL_VERSION = 'Q4_K_M';
 
 class LlamaCppService {
     constructor() {
@@ -25,9 +27,25 @@ class LlamaCppService {
         if (this.isDev) {
             return path.join(process.cwd(), 'resources', 'llama', 'models', 'Phi-3.5-mini-instruct-Q4_K_M.gguf');
         }
-        return path.join(process.resourcesPath, 'models', 'Phi-3.5-mini-instruct-Q4_K_M.gguf');
+        
+        // In production, use app data directory
+        const appDataPath = path.join(
+            process.platform === 'darwin' 
+                ? process.env.HOME + '/Library/Application Support/Criticaide'
+                : process.env.APPDATA + '/Criticaide',
+            'models'
+        );
+        
+        return path.join(appDataPath, 'Phi-3.5-mini-instruct-Q4_K_M.gguf');
     }
     
+    async getCliPath() {
+        if (this.isDev) {
+            return path.join(process.cwd(), 'resources', 'llama', 'binaries', 'win', 'llama-cli.exe');
+        }
+        return path.join(process.resourcesPath, 'bin', 'llama-cli.exe');
+    }
+
     async getBinaryPath() {
         if (this.isDev) {
             const binaryDir = path.join(process.cwd(), 'resources', 'llama', 'binaries', 'win');
@@ -41,6 +59,100 @@ class LlamaCppService {
             return path.join(process.cwd(), 'resources', 'llama', 'binaries', 'win');
         }
         return path.join(process.resourcesPath, 'bin');
+    }
+
+    async checkModelExists() {
+        try {
+            const modelPath = await this.getModelPath();
+            await fs.access(modelPath);
+            logger.info('Model found at:', modelPath);
+            return true;
+        } catch (error) {
+            logger.info('Model not found, will need to download');
+            return false;
+        }
+    }
+
+    async downloadModel() {
+        const modelPath = await this.getModelPath();
+        const modelDir = path.dirname(modelPath);
+        const modelUrl = 'https://huggingface.co/MaziyarPanahi/Phi-3.5-mini-instruct-GGUF/resolve/main/Phi-3.5-mini-instruct.Q4_K_M.gguf?download=true';
+    
+        logger.info('Initiating model download...');
+        logger.info(`Model will be saved to: ${modelPath}`);
+    
+        // Ensure models directory exists
+        try {
+            await fs.mkdir(modelDir, { recursive: true });
+        } catch (error) {
+            logger.error('Failed to create models directory:', error);
+            throw new Error(`Unable to create models directory: ${error.message}`);
+        }
+    
+        try {
+            const response = await fetch(modelUrl, {
+                timeout: 60000 // 60 second timeout
+            });
+            
+            if (!response.ok) {
+                throw new Error(`Failed to download model (HTTP ${response.status}): ${response.statusText}`);
+            }
+    
+            if (!response.body) {
+                throw new Error('No response body received');
+            }
+    
+            const totalSize = parseInt(response.headers.get('content-length'), 10);
+            if (!totalSize) {
+                throw new Error('Could not determine model size');
+            }
+    
+            let downloadedSize = 0;
+            const fileStream = require('fs').createWriteStream(modelPath);
+    
+            return new Promise((resolve, reject) => {
+                const body = response.body;
+                const reader = body.getReader();
+    
+                const processChunk = ({ done, value }) => {
+                    if (done) {
+                        fileStream.end();
+                        logger.info('Model download completed');
+                        resolve();
+                        return;
+                    }
+    
+                    downloadedSize += value.length;
+                    const progress = (downloadedSize / totalSize) * 100;
+                    logger.debug(`Download progress: ${progress.toFixed(2)}%`);
+                    
+                    fileStream.write(Buffer.from(value));
+                    reader.read().then(processChunk).catch(reject);
+                };
+    
+                fileStream.on('error', (error) => {
+                    logger.error('Error writing model file:', error);
+                    reject(new Error(`Failed to save model: ${error.message}`));
+                });
+    
+                reader.read().then(processChunk).catch(reject);
+            });
+    
+        } catch (error) {
+            logger.error('Model download failed:', error);
+            
+            // Format user-friendly error message
+            let userMessage = 'Failed to download language model. ';
+            if (error.code === 'ENOTFOUND') {
+                userMessage += 'Please check your internet connection.';
+            } else if (error.type === 'request-timeout') {
+                userMessage += 'The download timed out. Please try again.';
+            } else {
+                userMessage += `${error.message}. Please try again later or check logs for details.`;
+            }
+            
+            throw new Error(userMessage);
+        }
     }
 
     estimateTokens(text) {
@@ -93,12 +205,11 @@ class LlamaCppService {
         logger.info(`Using model: ${modelPath}`);
         logger.debug('Arguments:', args);
 
-        // Check files exist
-        const fs = require('fs');
-        if (!fs.existsSync(binaryPath)) {
-            throw new Error(`Binary not found: ${binaryPath}`);
+        // Check files exist - now only checking server binary and model
+        if (!await this.fileExists(binaryPath)) {
+            throw new Error(`Server binary not found: ${binaryPath}`);
         }
-        if (!fs.existsSync(modelPath)) {
+        if (!await this.fileExists(modelPath)) {
             throw new Error(`Model not found: ${modelPath}`);
         }
 
@@ -151,6 +262,15 @@ class LlamaCppService {
         });
     }
 
+    async fileExists(filePath) {
+        try {
+            await fs.access(filePath);
+            return true;
+        } catch {
+            return false;
+        }
+    }
+
     async startHealthCheck(resolve, reject) {
         let attempts = 0;
         const maxAttempts = 10;
@@ -180,6 +300,18 @@ class LlamaCppService {
         if (memoryState.isCritical) {
             logger.error('Critical memory state before starting server');
             throw new Error(memoryState.messages.warning);
+        }
+
+        // Check and download model if needed
+        const modelExists = await this.checkModelExists();
+        if (!modelExists) {
+            logger.info('Model not found, initiating download...');
+            try {
+                await this.downloadModel();
+            } catch (error) {
+                logger.error('Model download failed:', error);
+                throw new Error(`Failed to download model: ${error.message}`);
+            }
         }
 
         for (let attempt = 1; attempt <= this.maxRetries; attempt++) {
