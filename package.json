@@ -4,15 +4,16 @@
   "description": "Critical Thinking Aid",
   "main": "main.js",
   "scripts": {
+    "verify-deps": "node scripts/verify-build-deps.js",
     "start": "cross-env NODE_ENV=development electron .",
     "dev": "cross-env NODE_ENV=development electron .",
-    "prebuild": "rimraf dist",
+    "prebuild": "npm run verify-deps && rimraf dist",
     "build": "set NODE_ENV=production && electron-builder",
-    "prebuild:win": "rimraf dist",
+    "prebuild:win": "npm run verify-deps && rimraf dist",
     "build:win": "set NODE_ENV=production && electron-builder --win --publish never",
     "start:mac": "NODE_ENV=development electron .",
     "dev:mac": "NODE_ENV=development electron .",
-    "prebuild:mac": "chmod +x resources/ollama/runners/mac/ollama-darwin",
+    "prebuild:mac": "npm run verify-deps && chmod +x resources/ollama/runners/mac/ollama-darwin",
     "build:mac": "NODE_ENV=production electron-builder --mac --publish never"
   },
   "build": {
@@ -33,6 +34,10 @@
       "from": "resources/llama/binaries/${os}",
       "to": "bin",
       "filter": ["**/*"]
+    },
+    {
+      "from": "build/VC_redist.x64.exe",
+      "to": "."
     }
   ],
     "win": {
@@ -45,7 +50,8 @@
         }
       ],
       "icon": "resources/icons/icon.ico",
-      "artifactName": "${productName}-Setup-${version}.${ext}"
+      "artifactName": "${productName}-Setup-${version}.${ext}",
+      "requestedExecutionLevel": "requireAdministrator"
     },
     "nsis": {
       "oneClick": false,
@@ -55,7 +61,9 @@
       "shortcutName": "Criticaide",
       "uninstallDisplayName": "Criticaide",
       "installerIcon": "resources/icons/icon.ico",
-      "uninstallerIcon": "resources/icons/icon.ico"
+      "uninstallerIcon": "resources/icons/icon.ico",
+      "include": "build/installer.nsh",
+      "perMachine": true
     },
     "mac": {
       "hardenedRuntime": true,

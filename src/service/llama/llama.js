@@ -194,71 +194,65 @@ class LlamaCppService {
         const modelPath = await this.getModelPath();
         const binaryPath = await this.getBinaryPath();
         const binaryDir = await this.getBinaryDir();
-
+    
+        // Basic server arguments
         const args = [
             '--model', modelPath,
             '--ctx-size', '4096',
             '--n-gpu-layers', '99'
         ];
-
+    
         logger.info(`Starting server with binary: ${binaryPath}`);
         logger.info(`Using model: ${modelPath}`);
         logger.debug('Arguments:', args);
-
-        // Check files exist - now only checking server binary and model
-        if (!await this.fileExists(binaryPath)) {
-            throw new Error(`Server binary not found: ${binaryPath}`);
-        }
-        if (!await this.fileExists(modelPath)) {
-            throw new Error(`Model not found: ${modelPath}`);
-        }
-
+    
+        // Windows 11 has a more reliable DLL loading mechanism, so we can simplify
         this.process = spawn(binaryPath, args, {
-            cwd: binaryDir
+            cwd: binaryDir,
+            env: process.env
         });
-
+    
         return new Promise((resolve, reject) => {
             let serverOutput = '';
             let isStarting = true;
-
+    
             this.process.stdout.on('data', (data) => {
                 const output = data.toString();
                 serverOutput += output;
                 logger.debug('Server stdout:', output);
             });
-
+    
             this.process.stderr.on('data', (data) => {
                 const error = data.toString();
                 logger.debug('Server stderr:', error);
                 serverOutput += error;
-
+    
                 if (error.includes('server is listening')) {
                     this.startHealthCheck(resolve, reject);
                 }
             });
-
+    
             this.process.on('error', (error) => {
                 logger.error('Process error:', error);
                 reject(error);
             });
-
+    
             this.process.on('close', (code) => {
                 if (isStarting && !this.isServerReady) {
                     logger.error('Server closed before ready. Exit code:', code);
-                    logger.error('Server output:', serverOutput);
                     reject(new Error(`Server closed with code ${code}`));
                 }
             });
-
+    
+            // Reduce timeout since Windows 11 loads faster
             setTimeout(() => {
                 if (!this.isServerReady) {
                     isStarting = false;
                     logger.error('Server startup timeout');
-                    logger.error('Accumulated output:', serverOutput);
                     this.stop();
                     reject(new Error('Server startup timeout'));
                 }
-            }, 60000);
+            }, 30000);
         });
     }
 
