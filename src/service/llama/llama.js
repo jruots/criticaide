@@ -1,10 +1,11 @@
-const { spawn } = require('child_process');
+const { spawn, exec } = require('child_process');
 const path = require('path');
 const fs = require('fs/promises');
 const logger = require('../../utils/logger');
 const { checkMemory } = require('../../utils/memory');
 const { analyzePrompt: defaultAnalyze } = require('../../prompts/phi35/analyze.js');
 const { systemPrompt: defaultSystem } = require('../../prompts/phi35/system.js');
+const os = require('os');
 
 // Constants for token management
 const TOKEN_MULTIPLIER = 2;  // Conservative estimate for words to tokens
@@ -29,34 +30,28 @@ class LlamaCppService {
         }
         
         // In production, use app data directory
-        const appDataPath = path.join(
-            process.platform === 'darwin' 
-                ? process.env.HOME + '/Library/Application Support/Criticaide'
-                : process.env.APPDATA + '/Criticaide',
-            'models'
-        );
+        const appDataPath = process.platform === 'darwin' 
+        ? path.join(os.homedir(), 'Documents', 'Criticaide', 'models')  // Mac path
+        : path.join(process.env.APPDATA, 'Criticaide', 'models');       // Windows path
         
         return path.join(appDataPath, 'Phi-3.5-mini-instruct-Q4_K_M.gguf');
-    }
-    
-    async getCliPath() {
-        if (this.isDev) {
-            return path.join(process.cwd(), 'resources', 'llama', 'binaries', 'win', 'llama-cli.exe');
-        }
-        return path.join(process.resourcesPath, 'bin', 'llama-cli.exe');
     }
 
     async getBinaryPath() {
         if (this.isDev) {
-            const binaryDir = path.join(process.cwd(), 'resources', 'llama', 'binaries', 'win');
-            return path.join(binaryDir, 'llama-server.exe');
+            const platform = process.platform === 'darwin' ? 'mac' : 'win';
+            const exeName = process.platform === 'darwin' ? 'llama-server' : 'llama-server.exe';
+            return path.join(process.cwd(), 'resources', 'llama', 'binaries', platform, exeName);
         }
-        return path.join(process.resourcesPath, 'bin', 'llama-server.exe');
+        
+        const exeName = process.platform === 'darwin' ? 'llama-server' : 'llama-server.exe';
+        return path.join(process.resourcesPath, 'bin', exeName);
     }
     
     async getBinaryDir() {
         if (this.isDev) {
-            return path.join(process.cwd(), 'resources', 'llama', 'binaries', 'win');
+            const platform = process.platform === 'darwin' ? 'mac' : 'win';
+            return path.join(process.cwd(), 'resources', 'llama', 'binaries', platform);
         }
         return path.join(process.resourcesPath, 'bin');
     }
@@ -206,11 +201,26 @@ class LlamaCppService {
         logger.info(`Using model: ${modelPath}`);
         logger.debug('Arguments:', args);
     
-        // Windows 11 has a more reliable DLL loading mechanism, so we can simplify
-        this.process = spawn(binaryPath, args, {
+        // Set up environment and spawn options
+        const env = { ...process.env };
+        const spawnOptions = {
             cwd: binaryDir,
-            env: process.env
-        });
+            env
+        };
+    
+        // Add Mac-specific settings
+        if (process.platform === 'darwin') {
+            // Ensure executable permissions
+            try {
+                await fs.promises.chmod(binaryPath, '755');
+                logger.info('Set executable permissions for server binary');
+            } catch (error) {
+                logger.error('Failed to set executable permissions:', error);
+                throw error;
+            }
+        }
+    
+        this.process = spawn(binaryPath, args, spawnOptions);
     
         return new Promise((resolve, reject) => {
             let serverOutput = '';
@@ -234,7 +244,11 @@ class LlamaCppService {
     
             this.process.on('error', (error) => {
                 logger.error('Process error:', error);
-                reject(error);
+                if (process.platform === 'darwin' && error.code === 'EACCES') {
+                    reject(new Error('Server binary lacks executable permissions. Please check file permissions.'));
+                } else {
+                    reject(error);
+                }
             });
     
             this.process.on('close', (code) => {
@@ -244,7 +258,7 @@ class LlamaCppService {
                 }
             });
     
-            // Reduce timeout since Windows 11 loads faster
+            // Timeout after 30 seconds
             setTimeout(() => {
                 if (!this.isServerReady) {
                     isStarting = false;
@@ -426,12 +440,47 @@ class LlamaCppService {
     }
 
     async stop() {
-        if (this.process) {
-            logger.info('Stopping llama.cpp server...');
-            this.process.kill();
-            this.process = null;
-            this.isServerReady = false;
+        if (!this.process) {
+            logger.debug('No child process to stop');
+            return;
         }
+    
+        return new Promise((resolve) => {
+            if (process.platform === 'darwin') {
+                try {
+                    process.kill(this.process.pid, 'SIGTERM');
+                    logger.info('Sent SIGTERM to server process');
+                    
+                    // Give process time to terminate gracefully
+                    setTimeout(() => {
+                        try {
+                            // Check if process still exists
+                            process.kill(this.process.pid, 0);
+                            // If we get here, process still exists, force kill
+                            process.kill(this.process.pid, 'SIGKILL');
+                            logger.info('Process required SIGKILL');
+                        } catch(e) {
+                            // Process no longer exists, which is good
+                            logger.info('Process terminated gracefully');
+                        }
+                        resolve();
+                    }, 1000);
+                } catch(e) {
+                    logger.warn('Error during process termination:', e);
+                    resolve();
+                }
+            } else {
+                // Existing Windows code...
+                exec(`taskkill /pid ${this.process.pid} /f /t`, (err) => {
+                    if (err) {
+                        logger.error(`Failed to kill process ${this.process.pid}:`, err);
+                    } else {
+                        logger.info(`Successfully terminated process ${this.process.pid}`);
+                    }
+                    resolve();
+                });
+            }
+        });
     }
 }
 

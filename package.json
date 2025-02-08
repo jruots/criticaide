@@ -8,13 +8,13 @@
     "start": "cross-env NODE_ENV=development electron .",
     "dev": "cross-env NODE_ENV=development electron .",
     "prebuild": "npm run verify-deps && rimraf dist",
-    "build": "set NODE_ENV=production && electron-builder",
+    "build": "cross-env NODE_ENV=production electron-builder",
     "prebuild:win": "npm run verify-deps && rimraf dist",
-    "build:win": "set NODE_ENV=production && electron-builder --win --publish never",
-    "start:mac": "NODE_ENV=development electron .",
-    "dev:mac": "NODE_ENV=development electron .",
-    "prebuild:mac": "npm run verify-deps && chmod +x resources/ollama/runners/mac/ollama-darwin",
-    "build:mac": "NODE_ENV=production electron-builder --mac --publish never"
+    "build:win": "cross-env NODE_ENV=production electron-builder --win --publish never",
+    "start:mac": "cross-env NODE_ENV=development electron .",
+    "dev:mac": "cross-env NODE_ENV=development electron .",
+    "prebuild:mac": "npm run verify-deps && rimraf dist",
+    "build:mac": "cross-env NODE_ENV=production electron-builder --mac --publish never"
   },
   "build": {
     "appId": "com.criticaide.app",
@@ -31,13 +31,14 @@
   ],
   "extraResources": [
     {
-      "from": "resources/llama/binaries/${os}",
+      "from": "resources/llama/binaries/win",
       "to": "bin",
       "filter": ["**/*"]
     },
     {
       "from": "build/VC_redist.x64.exe",
-      "to": "."
+      "to": ".",
+      "filter": ["**/*"]
     }
   ],
     "win": {
@@ -66,16 +67,24 @@
       "perMachine": true
     },
     "mac": {
+      "files": [
+        "!build/VC_redist.x64.exe",
+        "!resources/llama/binaries/win/**/*"
+    ],
+      "extraResources": [
+        {
+          "from": "resources/llama/binaries/mac",
+          "to": "bin",
+          "filter": ["**/*"]
+        }
+      ],
       "hardenedRuntime": true,
       "entitlements": "build/entitlements.mac.plist",
       "entitlementsInherit": "build/entitlements.mac.plist",
       "target": [
         {
           "target": "dmg",
-          "arch": [
-            "x64",
-            "arm64"
-          ]
+          "arch": ["arm64"]
         }
       ],
       "icon": "resources/icons/icon.icns",

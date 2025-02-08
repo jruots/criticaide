@@ -1,6 +1,6 @@
 name: Build Criticaide
 on:
-  workflow_dispatch:  # Only manual triggering
+  workflow_dispatch:
 
 jobs:
   build:
@@ -19,7 +19,7 @@ jobs:
 
     - name: Create build directory
       run: mkdir -p build
-      
+     
     - name: Create entitlements file
       run: |
         cat > build/entitlements.mac.plist << 'EOL'
@@ -43,8 +43,11 @@ jobs:
         </plist>
         EOL
 
-    - name: Set Ollama binary permissions
-      run: chmod +x resources/ollama/runners/mac/ollama-darwin
+    - name: Set llama.cpp binaries permissions
+      run: |
+        chmod +x resources/llama/binaries/mac/llama-server
+        chmod +x resources/llama/binaries/mac/*.dylib
+        chmod +x resources/llama/binaries/mac/*.metal
      
     - name: Build macOS
       run: npm run build:mac
