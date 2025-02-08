@@ -73,3 +73,6 @@ src/prompts/smallthinker
 #llama cpp server binaries and model
 resources/llama/binaries
 resources/llama/models
+
+#repomix output
+repomix-output.txt
