@@ -6,6 +6,7 @@ const { checkMemory } = require('../../utils/memory');
 const { analyzePrompt: defaultAnalyze } = require('../../prompts/phi35/analyze.js');
 const { systemPrompt: defaultSystem } = require('../../prompts/phi35/system.js');
 const os = require('os');
+const { execSync } = require('child_process');
 
 // Constants for token management
 const TOKEN_MULTIPLIER = 2;  // Conservative estimate for words to tokens
@@ -22,6 +23,18 @@ class LlamaCppService {
         this.isDev = process.env.NODE_ENV === 'development';
         this.serverRetries = 0;
         this.maxRetries = 3;
+    }
+
+    async getShortPathName(longPath) {
+        try {
+            // Use Windows command to get the short path name
+            const shortPath = execSync(`cmd /c "for %I in ("${longPath}") do @echo %~sI"`, { encoding: 'utf8' }).trim();
+            logger.debug(`Converted path: ${longPath} → ${shortPath}`);
+            return shortPath;
+        } catch (error) {
+            logger.warn(`Failed to convert to short path: ${error.message}`);
+            return longPath; // Fall back to the original path
+        }
     }
 
     async getModelPath() {
@@ -185,8 +198,7 @@ class LlamaCppService {
         return false;
     }
 
-    async startServer() {
-        const modelPath = await this.getModelPath();
+    async startServer(modelPath, gpuLayers = 99) {
         const binaryPath = await this.getBinaryPath();
         const binaryDir = await this.getBinaryDir();
     
@@ -194,7 +206,7 @@ class LlamaCppService {
         const args = [
             '--model', modelPath,
             '--ctx-size', '4096',
-            '--n-gpu-layers', '99'
+            '--n-gpu-layers', gpuLayers.toString()
         ];
     
         logger.info(`Starting server with binary: ${binaryPath}`);
@@ -322,19 +334,35 @@ class LlamaCppService {
             }
         }
 
+        // Get model path and convert to short path if on Windows
+        let modelPath = await this.getModelPath();
+        if (process.platform === 'win32') {
+            modelPath = await this.getShortPathName(modelPath);
+            logger.info(`Using short path for model: ${modelPath}`);
+        }
+
+        let gpuLayers = 99; // Default to use GPU
+
         for (let attempt = 1; attempt <= this.maxRetries; attempt++) {
             try {
-                await this.startServer();
-                this.serverRetries = 0; // Reset retry counter on success
+                // If previous attempt failed and it's not the first attempt, try with CPU only
+                if (attempt > 1 && this.serverRetries > 0) {
+                    gpuLayers = 0; // Switch to CPU-only mode
+                    logger.info('Switching to CPU-only mode after previous failure');
+                }
+                
+                await this.startServer(modelPath, gpuLayers);
+                this.serverRetries = 0;
                 return 'system';
             } catch (error) {
                 logger.error(`Server start attempt ${attempt} failed:`, error);
+                this.serverRetries++;
                 
                 if (attempt === this.maxRetries) {
                     throw error;
                 }
-
-                const delay = 1000 * Math.pow(2, attempt - 1); // Exponential backoff
+                
+                const delay = 1000 * Math.pow(2, attempt - 1);
                 logger.info(`Waiting ${delay}ms before retry ${attempt + 1}...`);
                 await new Promise(resolve => setTimeout(resolve, delay));
             }

@@ -1,6 +1,6 @@
 {
   "name": "criticaide",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Critical Thinking Aid",
   "main": "main.js",
   "scripts": {
@@ -34,11 +34,6 @@
       "from": "resources/llama/binaries/win",
       "to": "bin",
       "filter": ["**/*"]
-    },
-    {
-      "from": "build/VC_redist.x64.exe",
-      "to": ".",
-      "filter": ["**/*"]
     }
   ],
     "win": {
@@ -51,8 +46,7 @@
         }
       ],
       "icon": "resources/icons/icon.ico",
-      "artifactName": "${productName}-Setup-${version}.${ext}",
-      "requestedExecutionLevel": "requireAdministrator"
+      "artifactName": "${productName}-Setup-${version}.${ext}"
     },
     "nsis": {
       "oneClick": false,
@@ -62,13 +56,10 @@
       "shortcutName": "Criticaide",
       "uninstallDisplayName": "Criticaide",
       "installerIcon": "resources/icons/icon.ico",
-      "uninstallerIcon": "resources/icons/icon.ico",
-      "include": "build/installer.nsh",
-      "perMachine": true
+      "uninstallerIcon": "resources/icons/icon.ico"
     },
     "mac": {
       "files": [
-        "!build/VC_redist.x64.exe",
         "!resources/llama/binaries/win/**/*"
     ],
       "extraResources": [
