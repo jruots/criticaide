@@ -34,11 +34,6 @@
       "from": "resources/llama/binaries/win",
       "to": "bin",
       "filter": ["**/*"]
-    },
-    {
-      "from": "build/VC_redist.x64.exe",
-      "to": ".",
-      "filter": ["**/*"]
     }
   ],
     "win": {
@@ -63,12 +58,10 @@
       "uninstallDisplayName": "Criticaide",
       "installerIcon": "resources/icons/icon.ico",
       "uninstallerIcon": "resources/icons/icon.ico",
-      "include": "build/installer.nsh",
       "perMachine": true
     },
     "mac": {
       "files": [
-        "!build/VC_redist.x64.exe",
         "!resources/llama/binaries/win/**/*"
     ],
       "extraResources": [
