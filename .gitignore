@@ -69,3 +69,11 @@ src/prompts/gemma2b
 src/prompts/llama323b
 src/prompts/qwen25
 src/prompts/smallthinker
+
+#llama cpp server binaries and model
+resources/llama/binaries/win
+resources/llama/models
+resources/ollama
+
+#repomix output
+repomix-output.txt

@@ -1,39 +1,46 @@
 {
   "name": "criticaide",
-  "version": "0.1.3",
+  "version": "0.2.0",
   "description": "Critical Thinking Aid",
   "main": "main.js",
   "scripts": {
+    "verify-deps": "node scripts/verify-build-deps.js",
     "start": "cross-env NODE_ENV=development electron .",
     "dev": "cross-env NODE_ENV=development electron .",
-    "build": "set NODE_ENV=production && electron-builder",
-    "start:mac": "NODE_ENV=development electron .",
-    "dev:mac": "NODE_ENV=development electron .",
-    "prebuild:mac": "chmod +x resources/ollama/runners/mac/ollama-darwin",
-    "build:mac": "NODE_ENV=production electron-builder --mac --publish never"
+    "prebuild": "npm run verify-deps && rimraf dist",
+    "build": "cross-env NODE_ENV=production electron-builder",
+    "prebuild:win": "npm run verify-deps && rimraf dist",
+    "build:win": "cross-env NODE_ENV=production electron-builder --win --publish never",
+    "start:mac": "cross-env NODE_ENV=development electron .",
+    "dev:mac": "cross-env NODE_ENV=development electron .",
+    "prebuild:mac": "npm run verify-deps && rimraf dist",
+    "build:mac": "cross-env NODE_ENV=production electron-builder --mac --publish never"
   },
   "build": {
     "appId": "com.criticaide.app",
     "productName": "Criticaide",
+    "compression": "store",
     "directories": {
-      "output": "dist"
+      "output": "dist",
+      "buildResources": "build",
+      "app": "."
     },
-    "files": [
-      "**/*",
-      "!resources/ollama/runners/*"
-    ],
-    "extraResources": [
-      {
-        "from": "resources/ollama/runners/${os}",
-        "to": "bin",
-        "filter": [
-          "**/*"
-        ]
-      }
-    ],
-    "asarUnpack": [
-      "resources/ollama/runners/*"
-    ],
+  "files": [
+    "**/*",
+    "!resources/llama/models/**/*"
+  ],
+  "extraResources": [
+    {
+      "from": "resources/llama/binaries/win",
+      "to": "bin",
+      "filter": ["**/*"]
+    },
+    {
+      "from": "build/VC_redist.x64.exe",
+      "to": ".",
+      "filter": ["**/*"]
+    }
+  ],
     "win": {
       "target": [
         {
@@ -44,9 +51,10 @@
         }
       ],
       "icon": "resources/icons/icon.ico",
-      "artifactName": "${productName}-Setup-${version}.${ext}"
+      "artifactName": "${productName}-Setup-${version}.${ext}",
+      "requestedExecutionLevel": "requireAdministrator"
     },
-    "nsisWeb": {
+    "nsis": {
       "oneClick": false,
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
@@ -54,19 +62,29 @@
       "shortcutName": "Criticaide",
       "uninstallDisplayName": "Criticaide",
       "installerIcon": "resources/icons/icon.ico",
-      "uninstallerIcon": "resources/icons/icon.ico"
+      "uninstallerIcon": "resources/icons/icon.ico",
+      "include": "build/installer.nsh",
+      "perMachine": true
     },
     "mac": {
+      "files": [
+        "!build/VC_redist.x64.exe",
+        "!resources/llama/binaries/win/**/*"
+    ],
+      "extraResources": [
+        {
+          "from": "resources/llama/binaries/mac",
+          "to": "bin",
+          "filter": ["**/*"]
+        }
+      ],
       "hardenedRuntime": true,
       "entitlements": "build/entitlements.mac.plist",
       "entitlementsInherit": "build/entitlements.mac.plist",
       "target": [
         {
           "target": "dmg",
-          "arch": [
-            "x64",
-            "arm64"
-          ]
+          "arch": ["arm64"]
         }
       ],
       "icon": "resources/icons/icon.icns",
@@ -75,17 +93,17 @@
       "darkModeSupport": true
     }
   },
-  "author": "",
-  "license": "ISC",
+  "author": "jruots",
+  "license": "MIT",
   "devDependencies": {
     "cross-env": "^7.0.3",
     "electron": "^28.0.0",
-    "electron-builder": "^24.9.1"
+    "electron-builder": "^24.9.1",
+    "rimraf": "^6.0.1"
   },
   "dependencies": {
     "electron-log": "^5.2.4",
     "electron-store": "^10.0.0",
-    "node-global-key-listener": "^0.3.0",
-    "ollama": "^0.5.11"
+    "node-global-key-listener": "^0.3.0"
   }
 }

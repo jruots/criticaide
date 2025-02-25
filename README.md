@@ -8,13 +8,14 @@ Your first line of defense in an era of digital manipulation - a desktop applica
 
 ## Overview
 
-Criticaide is a proof-of-concept desktop application that uses local LLM capabilities (via Ollama) to analyze text content for potential misinformation, disinformation, manipulation techniques, and bias. Simply select any text, copy it with Ctrl+C, and use the global shortcut (Ctrl+Alt+Shift+T), and get near-instant analysis.
+Criticaide is a proof-of-concept desktop application that uses local LLM capabilities (local llama.cpp server) to analyze text content for potential misinformation, disinformation, manipulation techniques, and bias. Simply select any text, copy it with Ctrl+C, and use the global shortcut (Ctrl+Alt+Shift+T), and get near-instant analysis.
 
 ## Features
 
 - Global keyboard shortcuts (Ctrl+C and Ctrl+Alt+Shift+T) for near-instant analysis
-- Local processing using Ollama - your data stays on your machine. Ensures user privacy by performing all analysis locally, without sending data to third-party servers.
-- Adaptive model selection based on system capabilities (downloads either Phi2 or Mistral 7B)
+- Local processing using local llama.cpp server - your data stays on your machine. Ensures user privacy by performing all analysis locally, without sending data to third-party servers.
+- Utilizes Vulkan API for general GPU inference on Windows and Apple silicon is a first-class citizen through llama.cpp integration
+- Phi-3.5 instruct 3.8B parameter model for analysis
 - Heuristic context handling: Employs a heuristic approach to manage context windows in tokens of copied text, enabling analysis of longer content.
 - Extensive logging: Generates detailed local logs to aid in troubleshooting and error reporting, ensuring a smooth user experience
 - Graceful error handling: Provides informative messages in low-RAM environments, directing users to maintain functionality across a wide range of systems.
@@ -36,15 +37,14 @@ Criticaide is a proof-of-concept desktop application that uses local LLM capabil
 1. Download the latest release from the [releases page](https://github.com/jruots/criticaide/releases)
 2. Run the installer
 3. Launch Criticaide
-4. First launch will download the appropriate AI model
-5. Once set up, you can begin analyzing text content by copying text with Ctrl+C and using the global keyboard shortcut (Ctrl+Alt+Shift+T)
+4. Once set up, you can begin analyzing text content by copying text with Ctrl+C and using the global keyboard shortcut (Ctrl+Alt+Shift+T)
 
 ## Development
 
 This is a proof-of-concept project built with:
 - Electron
 - Node.js
-- Ollama. Integrates the Ollama binary for local LLM processing, with support for both development (system Ollama) and production (packaged Ollama) environments.
+- llama.cpp. Integrates the llama.cpp server binary for local LLM processing.
 
 ### Quick Start
 
@@ -53,7 +53,7 @@ This is a proof-of-concept project built with:
 git clone https://github.com/jruots/criticaide.git
 ```
 
-Download the [Ollama binary](https://ollama.com/download) for the needed platform/s and set them in resources/ollama/runners/win or other platform
+Download the [llama.cpp binary](https://github.com/ggerganov/llama.cpp/releases) for the needed platform/s and set them in resources/llama/binaries/win or other platform
 
 ```bash
 # Install dependencies
@@ -74,9 +74,9 @@ MIT License
 This project is built upon or inspired by the work of:
 
 - [chatd](https://github.com/BruceMacD/chatd) - Some of the Electron app structure and implementations are based on this project
-- [Ollama](https://github.com/ollama/ollama) - Used as the underlying LLM service for text analysis
+- [llama.cpp](https://github.com/ggerganov/llama.cpp) - Used as the underlying LLM service for text analysis
 - App icon by [Karyative] on [Flaticon](https://www.flaticon.com/)
 
 Both projects are MIT licensed. We're grateful to their creators and contributors.
 
-Powered by Mistral and Phi-2 models
+Powered by Phi-3.5
