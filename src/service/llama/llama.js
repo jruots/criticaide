@@ -314,14 +314,14 @@ class LlamaCppService {
     async serve() {
         logger.setScope('LlamaCpp');
         logger.info('Starting llama.cpp server...');
-
+    
         // Check memory before starting
         const memoryState = checkMemory();
         if (memoryState.isCritical) {
             logger.error('Critical memory state before starting server');
             throw new Error(memoryState.messages.warning);
         }
-
+    
         // Check and download model if needed
         const modelExists = await this.checkModelExists();
         if (!modelExists) {
@@ -333,38 +333,46 @@ class LlamaCppService {
                 throw new Error(`Failed to download model: ${error.message}`);
             }
         }
-
+    
         // Get model path and convert to short path if on Windows
         let modelPath = await this.getModelPath();
         if (process.platform === 'win32') {
             modelPath = await this.getShortPathName(modelPath);
             logger.info(`Using short path for model: ${modelPath}`);
         }
-
-        let gpuLayers = 99; // Default to use GPU
-
-        for (let attempt = 1; attempt <= this.maxRetries; attempt++) {
+    
+        // Attempt to start server, starting with GPU and falling back to CPU
+        let serverStarted = false;
+        let lastError = null;
+        
+        // First try with GPU acceleration
+        try {
+            logger.info('Attempting to start with GPU acceleration...');
+            await this.startServer(modelPath, 99); // GPU mode
+            this.serverRetries = 0;
+            serverStarted = true;
+            return 'system';
+        } catch (error) {
+            logger.warn('GPU acceleration failed, will try CPU-only mode:', error);
+            lastError = error;
+            
+            // Ensure process is completely stopped
+            await this.stop();
+            
+            // Add a brief pause to make sure resources are released
+            await new Promise(resolve => setTimeout(resolve, 1000));
+        }
+        
+        // If GPU failed, try CPU-only mode
+        if (!serverStarted) {
             try {
-                // If previous attempt failed and it's not the first attempt, try with CPU only
-                if (attempt > 1 && this.serverRetries > 0) {
-                    gpuLayers = 0; // Switch to CPU-only mode
-                    logger.info('Switching to CPU-only mode after previous failure');
-                }
-                
-                await this.startServer(modelPath, gpuLayers);
+                logger.info('Starting in CPU-only mode');
+                await this.startServer(modelPath, 0); // CPU-only mode
                 this.serverRetries = 0;
                 return 'system';
             } catch (error) {
-                logger.error(`Server start attempt ${attempt} failed:`, error);
-                this.serverRetries++;
-                
-                if (attempt === this.maxRetries) {
-                    throw error;
-                }
-                
-                const delay = 1000 * Math.pow(2, attempt - 1);
-                logger.info(`Waiting ${delay}ms before retry ${attempt + 1}...`);
-                await new Promise(resolve => setTimeout(resolve, delay));
+                logger.error('CPU-only mode also failed:', error);
+                throw error; // Both GPU and CPU failed, nothing more we can do
             }
         }
     }
@@ -472,41 +480,54 @@ class LlamaCppService {
             logger.debug('No child process to stop');
             return;
         }
-    
+        
         return new Promise((resolve) => {
-            if (process.platform === 'darwin') {
+            const pid = this.process.pid;
+            
+            if (process.platform === 'win32') {
+                // Add a more robust check and wait for termination
+                exec(`taskkill /pid ${pid} /f /t`, (err) => {
+                    if (err) {
+                        logger.error(`Failed to kill process ${pid}:`, err);
+                        // Additional cleanup attempt if needed
+                        try {
+                            this.process.kill('SIGKILL');
+                        } catch (e) {
+                            logger.warn('Error during forced termination:', e);
+                        }
+                    } else {
+                        logger.info(`Successfully terminated process ${pid}`);
+                    }
+                    
+                    // Add a delay to ensure OS resources are freed
+                    setTimeout(resolve, 500);
+                });
+            } else {
+                // Mac/Linux termination
                 try {
-                    process.kill(this.process.pid, 'SIGTERM');
+                    process.kill(pid, 'SIGTERM');
                     logger.info('Sent SIGTERM to server process');
                     
-                    // Give process time to terminate gracefully
+                    // Give process time to terminate gracefully but with a shorter timeout
                     setTimeout(() => {
                         try {
                             // Check if process still exists
-                            process.kill(this.process.pid, 0);
+                            process.kill(pid, 0);
                             // If we get here, process still exists, force kill
-                            process.kill(this.process.pid, 'SIGKILL');
+                            process.kill(pid, 'SIGKILL');
                             logger.info('Process required SIGKILL');
                         } catch(e) {
                             // Process no longer exists, which is good
                             logger.info('Process terminated gracefully');
                         }
-                        resolve();
-                    }, 1000);
+                        
+                        // Add a delay to ensure OS resources are freed
+                        setTimeout(resolve, 300);
+                    }, 700);
                 } catch(e) {
                     logger.warn('Error during process termination:', e);
-                    resolve();
+                    setTimeout(resolve, 300);
                 }
-            } else {
-                // Existing Windows code...
-                exec(`taskkill /pid ${this.process.pid} /f /t`, (err) => {
-                    if (err) {
-                        logger.error(`Failed to kill process ${this.process.pid}:`, err);
-                    } else {
-                        logger.info(`Successfully terminated process ${this.process.pid}`);
-                    }
-                    resolve();
-                });
             }
         });
     }
