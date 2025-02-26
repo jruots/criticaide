@@ -33,19 +33,22 @@ class CognitiveBiasAgent extends SpecialistAgent {
   formatPrompt(text, context = {}) {
     return {
       role: 'user',
-      content: `Analyze this text for cognitive biases. Identify specific cognitive biases that might be present or exploited.
+      content: `Analyze this text for cognitive biases. Identify only clear examples of cognitive biases with specific textual evidence.
 
 Source: ${context.source || 'N/A'}
 Text: "${text}"
 
-Consider biases such as:
-- Confirmation bias
-- Bandwagon effect
-- Authority bias
-- Availability heuristic
-- Framing effect
-- In-group bias
-- And other relevant cognitive biases
+Consider these cognitive biases:
+- Confirmation bias: Favoring information confirming existing beliefs
+- Authority bias: Trusting claims based on source, not evidence
+- Bandwagon effect: Appeal to popularity instead of merit
+- Framing effect: Using specific presentation to influence interpretation
+- Other relevant cognitive biases
+
+Severity guide:
+- Low: Subtle bias unlikely to affect core message
+- Medium: Noticeable bias that influences but doesn't dominate reasoning
+- High: Significant bias that fundamentally undermines objectivity
 
 Respond in this JSON format:
 {
@@ -59,7 +62,9 @@ Respond in this JSON format:
   ],
   "overall_assessment": string,
   "recommendation": string
-}`
+}
+
+Only identify biases with clear textual evidence. Regular persuasion is not automatically bias.`
     };
   }
 }
@@ -77,19 +82,22 @@ class EmotionalManipulationAgent extends SpecialistAgent {
   formatPrompt(text, context = {}) {
     return {
       role: 'user',
-      content: `Analyze this text for emotional manipulation tactics. Identify specific ways emotions might be leveraged to influence the reader.
+      content: `Analyze this text for emotional manipulation tactics. Identify only clear instances where emotions are leveraged to bypass rational thinking.
 
 Source: ${context.source || 'N/A'}
 Text: "${text}"
 
-Consider tactics such as:
-- Fear-mongering
-- Appeal to anger/outrage
-- Appeal to pity/sympathy
-- Guilt-tripping
-- Flattery
-- Urgency creation
-- And other emotional manipulation techniques
+Consider these manipulation tactics:
+- Fear-mongering: Exaggerating threats to provoke anxiety
+- Appeal to anger/outrage: Inflaming indignation beyond what facts warrant
+- Guilt-tripping: Inducing unwarranted guilt to influence behavior
+- Urgency creation: Artificial time pressure to force hasty decisions
+- Other emotional manipulation techniques
+
+Severity guide:
+- Low: Mild emotional appeal that doesn't distort facts
+- Medium: Notable emotional leverage that partially obscures rational assessment
+- High: Strong emotional manipulation that overwhelms factual content
 
 Respond in this JSON format:
 {
@@ -103,7 +111,9 @@ Respond in this JSON format:
   ],
   "overall_assessment": string,
   "recommendation": string
-}`
+}
+
+Important: Not all emotional content is manipulative. Only flag tactics that appear designed to circumvent rational judgment or distort understanding.`
     };
   }
 }
@@ -121,20 +131,22 @@ class LogicalFallacyAgent extends SpecialistAgent {
   formatPrompt(text, context = {}) {
     return {
       role: 'user',
-      content: `Analyze this text for logical fallacies and flawed reasoning. Identify specific fallacies that might be present.
+      content: `Analyze this text for logical fallacies and flawed reasoning. Identify only fallacies present in actual arguments (not descriptions or quotations).
 
 Source: ${context.source || 'N/A'}
 Text: "${text}"
 
-Consider fallacies such as:
-- Straw man arguments
-- False dichotomies
-- Ad hominem attacks
-- Appeal to ignorance
-- Slippery slope
-- False cause (post hoc)
-- Appeal to nature
-- And other logical fallacies
+Consider these common fallacies:
+- Straw man: Misrepresenting an opponent's argument to make it easier to attack
+- False dichotomy: Presenting only two options when others exist
+- Ad hominem: Attacking the person instead of addressing their argument
+- Slippery slope: Claiming one event will lead to extreme outcomes without evidence
+- False cause: Assuming correlation implies causation
+
+Severity guide:
+- Low: Minor reasoning flaw that doesn't undermine the main argument
+- Medium: Significant flaw that weakens but doesn't invalidate the entire argument
+- High: Critical flaw that invalidates the central reasoning
 
 Respond in this JSON format:
 {
@@ -148,7 +160,9 @@ Respond in this JSON format:
   ],
   "overall_assessment": string,
   "recommendation": string
-}`
+}
+
+Important: Only identify fallacies in actual arguments. Descriptive text, quotations of others' views, or non-argumentative content should not be flagged as containing fallacies.`
     };
   }
 }
@@ -166,19 +180,22 @@ class SourceCredibilityAgent extends SpecialistAgent {
   formatPrompt(text, context = {}) {
     return {
       role: 'user',
-      content: `Analyze this text for source credibility issues. Evaluate how sources are used, cited, or represented.
+      content: `Analyze this text for source credibility issues. Evaluate how sources are used, cited, or represented, considering the content type.
 
 Source: ${context.source || 'N/A'}
 Text: "${text}"
 
-Consider factors such as:
-- Expertise of cited sources
-- Missing or vague attributions
-- Anonymous sources
-- Misrepresented credentials
-- Circular references
-- Primary vs secondary sources
-- And other source credibility issues
+Consider these credibility factors:
+- Attribution clarity: Are claims properly attributed to specific sources?
+- Source expertise: Do cited sources have relevant expertise for their claims?
+- Citation completeness: Is there sufficient sourcing for key claims?
+- Source diversity: Are multiple perspectives or sources considered?
+- Transparency: Is the author/publisher clearly identified?
+
+Severity guide:
+- Low: Minor attribution issues that don't affect key claims
+- Medium: Notable sourcing problems that affect some important claims
+- High: Critical source issues that undermine core reliability
 
 Respond in this JSON format:
 {
@@ -192,7 +209,9 @@ Respond in this JSON format:
   ],
   "overall_assessment": string,
   "recommendation": string
-}`
+}
+
+Note: Consider context appropriately. News articles, academic papers, and social media have different citation standards. Self-evident claims or personal experiences may not require external sourcing.`
     };
   }
 }
@@ -210,19 +229,22 @@ class TechnicalAccuracyAgent extends SpecialistAgent {
   formatPrompt(text, context = {}) {
     return {
       role: 'user',
-      content: `Analyze this text for technical accuracy issues. Evaluate factual claims, statistics, and technical details.
+      content: `Analyze this text for technical accuracy issues. Evaluate factual claims, statistics, and technical details within your knowledge domain.
 
 Source: ${context.source || 'N/A'}
 Text: "${text}"
 
-Consider issues such as:
-- Misrepresented statistics
-- Cherry-picked data
-- Correlation vs causation confusion
-- Outdated information
-- Simplistic explanations of complex topics
-- Misleading technical terminology
-- And other technical accuracy issues
+Consider these accuracy factors:
+- Statistical integrity: Are statistics presented accurately and in proper context?
+- Causality claims: Are cause-effect relationships properly established or overstated?
+- Data selection: Is evidence cherry-picked or representative?
+- Technical terminology: Are specialized terms used correctly?
+- Complexity handling: Are complex topics explained appropriately or oversimplified?
+
+Severity guide:
+- Low: Minor inaccuracies that don't affect main conclusions
+- Medium: Notable issues that partially undermine key points
+- High: Critical errors that fundamentally misrepresent important facts
 
 Respond in this JSON format:
 {
@@ -236,7 +258,9 @@ Respond in this JSON format:
   ],
   "overall_assessment": string,
   "recommendation": string
-}`
+}
+
+Note: Consider the audience and purpose of the content. Technical writing for experts has different standards than general audience material. Only flag issues you can confidently identify based on the text.`
     };
   }
 }

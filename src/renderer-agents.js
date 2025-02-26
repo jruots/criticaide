@@ -10,6 +10,16 @@ document.addEventListener('DOMContentLoaded', () => {
         specialists: {},
         summarizer: null
     };
+
+    // Track analysis progress
+    const analysisStages = [
+        { id: 'screener', name: 'Initial Screening', progress: 0 },
+        { id: 'orchestrator', name: 'Analysis Planning', progress: 25 },
+        { id: 'specialists', name: 'Specialist Analysis', progress: 50 },
+        { id: 'summarizer', name: 'Final Assessment', progress: 90 },
+        { id: 'complete', name: 'Complete', progress: 100 }
+    ];
+    let currentStage = 0;
     
     const headerSubtitle = document.querySelector('.header-subtitle');
     if (headerSubtitle) {
@@ -18,57 +28,103 @@ document.addEventListener('DOMContentLoaded', () => {
         headerSubtitle.textContent = `Press ${shortcutText} to analyze copied text`;
     }
 
-    // Create agent-based UI elements
-    const createAgentUI = () => {
+    // Create unified evolving interface
+    const createUnifiedUI = () => {
         const loadingDiv = document.getElementById('loading');
         if (!loadingDiv) {
             console.error('Loading div not found');
             return;
         }
         
-        loadingDiv.innerHTML = `
-            <div class="loading-content">
-                <h1 class="text-4xl font-bold text-sky-500">
-                    Criticaide
-                </h1>
-                <div class="agent-progress">
-                    <div class="agent-step screener">
-                        <div class="agent-icon">🔍</div>
-                        <div class="agent-name">Screener</div>
-                        <div class="agent-status">Waiting...</div>
-                    </div>
-                    <div class="agent-preview screener-preview"></div>
-                    
-                    <div class="agent-step orchestrator">
-                        <div class="agent-icon">🧠</div>
-                        <div class="agent-name">Orchestrator</div>
-                        <div class="agent-status">Waiting...</div>
-                    </div>
-                    <div class="agent-preview orchestrator-preview"></div>
-                    
-                    <div class="agent-step specialists">
-                        <div class="specialists-header">
-                            <div class="agent-icon">👨‍🔬</div>
-                            <div class="agent-name">Specialists</div>
-                            <div class="agent-status">Waiting...</div>
-                        </div>
-                        <div class="specialist-list"></div>
-                    </div>
-                    
-                    <div class="agent-step summarizer">
-                        <div class="agent-icon">📝</div>
-                        <div class="agent-name">Summarizer</div>
-                        <div class="agent-status">Waiting...</div>
-                    </div>
-                    <div class="agent-preview summarizer-preview"></div>
-                </div>
-                <p class="initial-findings"></p>
+        // Clear previous content
+        loadingDiv.innerHTML = '';
+        
+        // Add evolving UI container
+        const container = document.createElement('div');
+        container.className = 'analysis-container';
+        
+        // Add progress bar
+        const progressContainer = document.createElement('div');
+        progressContainer.innerHTML = `
+            <div class="progress-bar">
+                <div class="progress-indicator" style="width: 0%"></div>
+            </div>
+            <div class="progress-stages">
+                ${analysisStages.map(stage => 
+                    `<div class="progress-stage ${stage.id}">${stage.name}</div>`
+                ).join('')}
             </div>
         `;
+        container.appendChild(progressContainer);
+        
+        // Add placeholder for final summary
+        const summaryPlaceholder = document.createElement('div');
+        summaryPlaceholder.className = 'summary-placeholder';
+        summaryPlaceholder.innerHTML = `
+            <div class="summary-placeholder-title">
+                <span class="agent-icon">📊</span>
+                <span>Analysis Summary</span>
+            </div>
+            <div class="summary-placeholder-content">
+                Summary will appear here when analysis is complete
+            </div>
+        `;
+        container.appendChild(summaryPlaceholder);
+        
+        // Add agent modules
+        const addAgentModule = (id, name, icon) => {
+            const module = document.createElement('div');
+            module.className = `agent-module ${id}`;
+            module.innerHTML = `
+                <div class="agent-module-header" onclick="this.parentElement.classList.toggle('expanded')">
+                    <span class="toggle-icon">▶</span>
+                    <span class="agent-icon">${icon}</span>
+                    <span class="agent-name">${name}</span>
+                    <span class="agent-status">Waiting...</span>
+                </div>
+                <div class="agent-module-content">
+                    <!-- Content will be populated dynamically -->
+                </div>
+            `;
+            container.appendChild(module);
+            return module;
+        };
+        
+        // Add agent modules
+        addAgentModule('screener', 'Initial Screening', '🔍');
+        addAgentModule('orchestrator', 'Analysis Planning', '🧠');
+        
+        // Specialists container
+        const specialistsModule = addAgentModule('specialists', 'Specialist Analysis', '👨‍🔬');
+        
+        // Add summarizer
+        addAgentModule('summarizer', 'Final Assessment', '📝');
+        
+        // Add placeholder for key concerns
+        const concernsPlaceholder = document.createElement('div');
+        concernsPlaceholder.className = 'summary-placeholder concerns-placeholder';
+        concernsPlaceholder.innerHTML = `
+            <div class="summary-placeholder-title">
+                <span class="agent-icon">⚠️</span>
+                <span>Key Concerns</span>
+            </div>
+            <div class="summary-placeholder-content">
+                Key concerns will appear here when analysis is complete
+            </div>
+        `;
+        container.appendChild(concernsPlaceholder);
+        
+        // Add scroll indicator
+        const scrollIndicator = document.createElement('div');
+        scrollIndicator.className = 'scroll-indicator';
+        scrollIndicator.innerHTML = '↓ Scroll for more ↓';
+        container.appendChild(scrollIndicator);
+        
+        loadingDiv.appendChild(container);
     };
 
-    // Create the agent UI
-    createAgentUI();
+    // Create the unified evolving UI
+    createUnifiedUI();
 
     // Specialist agent details
     const specialistDetails = {
@@ -78,12 +134,45 @@ document.addEventListener('DOMContentLoaded', () => {
         source_credibility: { icon: '📚', name: 'Source Credibility' },
         technical_accuracy: { icon: '🔬', name: 'Technical Accuracy' }
     };
+    
+    // Update progress indicator
+    const updateProgress = (stage) => {
+        const currentStageInfo = analysisStages.find(s => s.id === stage) || analysisStages[0];
+        
+        // Update progress bar
+        const progressBar = document.querySelector('.progress-indicator');
+        if (progressBar) {
+            progressBar.style.width = `${currentStageInfo.progress}%`;
+        }
+        
+        // Update stage indicators
+        document.querySelectorAll('.progress-stage').forEach(el => {
+            el.classList.remove('active', 'completed');
+        });
+        
+        // Mark current and completed stages
+        let foundCurrent = false;
+        analysisStages.forEach(stageInfo => {
+            const stageEl = document.querySelector(`.progress-stage.${stageInfo.id}`);
+            if (stageEl) {
+                if (stageInfo.id === currentStageInfo.id) {
+                    stageEl.classList.add('active');
+                    foundCurrent = true;
+                } else if (!foundCurrent) {
+                    stageEl.classList.add('completed');
+                }
+            }
+        });
+    };
 
     // Handle agent progress updates
     if (window.api && window.api.onAgentProgress) {
         window.api.onAgentProgress((update) => {
             console.log('Agent progress update:', update);
             const { stage, status, result } = update;
+            
+            // Update progress indicator
+            updateProgress(stage);
             
             // Store the result for final summary
             if (status === 'complete' && result) {
@@ -94,180 +183,222 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             }
             
-            // Update UI based on stage and status
-            updateAgentUI(stage, status, result);
+            // Update the specific agent module
+            updateAgentModule(stage, status, result);
             
-            // If we have initial findings from the screener, display them
-            if (stage === 'screener' && status === 'complete' && result) {
-                const initialFindingsElement = document.querySelector('.initial-findings');
-                if (initialFindingsElement) {
-                    initialFindingsElement.textContent = `Initial assessment: ${result.reasoning}`;
-                    initialFindingsElement.style.display = 'block';
-                    
-                    // Show preview of screener results
-                    const previewElement = document.querySelector('.screener-preview');
-                    if (previewElement) {
-                        previewElement.innerHTML = `
-                            <h4>Initial Screening</h4>
-                            <p>Credibility Score: <strong>${result.initial_score}/10</strong></p>
-                            <p>${result.needsDeepAnalysis ? 'Needs deeper analysis' : 'No significant issues detected'}</p>
-                        `;
-                        previewElement.style.display = 'block';
-                    }
-                }
+            // Handle the final analysis when summarizer is complete
+            if (stage === 'summarizer' && status === 'complete') {
+                updateSummary(result);
+                updateProgress('complete');
             }
-            
-            // Show preview of orchestrator results
-            if (stage === 'orchestrator' && status === 'complete' && result) {
-                const previewElement = document.querySelector('.orchestrator-preview');
-                if (previewElement) {
-                    previewElement.innerHTML = `
-                        <h4>Analysis Plan</h4>
-                        <p>Selected specialists:</p>
+        });
+    }
+
+    // Update a specific agent module
+    function updateAgentModule(stage, status, result) {
+        // Find the module
+        let moduleElement;
+        if (Object.keys(specialistDetails).includes(stage)) {
+            // For specialists, check if module exists or create it
+            moduleElement = document.querySelector(`.specialist-module.${stage}`);
+            if (!moduleElement && status === 'starting') {
+                createSpecialistModule(stage);
+                moduleElement = document.querySelector(`.specialist-module.${stage}`);
+            }
+        } else {
+            moduleElement = document.querySelector(`.agent-module.${stage}`);
+        }
+        
+        if (!moduleElement) {
+            console.error(`Module element for ${stage} not found`);
+            return;
+        }
+        
+        // Update module status
+        const statusElement = moduleElement.querySelector('.agent-status');
+        if (statusElement) {
+            if (status === 'starting') {
+                statusElement.textContent = 'Working...';
+                statusElement.className = 'agent-status working';
+                moduleElement.classList.add('active');
+                moduleElement.classList.add('expanded');
+                
+                // Ensure module is visible by scrolling to it
+                moduleElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            } else if (status === 'complete') {
+                statusElement.textContent = 'Complete';
+                statusElement.className = 'agent-status complete';
+                moduleElement.classList.remove('active');
+                moduleElement.classList.add('completed');
+                
+                // Add findings to module content
+                if (result) {
+                    populateModuleContent(stage, moduleElement, result);
+                }
+            } else if (status === 'error') {
+                statusElement.textContent = 'Error';
+                statusElement.className = 'agent-status error';
+                moduleElement.classList.remove('active');
+                moduleElement.classList.add('error');
+            }
+        }
+        
+        // Special handling for orchestrator - create specialist modules
+        if (stage === 'orchestrator' && status === 'complete' && result?.selected_specialists) {
+            // Create specialist modules
+            const specialistsContainer = document.querySelector('.agent-module.specialists .agent-module-content');
+            if (specialistsContainer) {
+                specialistsContainer.innerHTML = `
+                    <div class="agent-module-findings">
+                        <h4>Selected Specialists</h4>
                         <ul>
                             ${result.selected_specialists.map(spec => {
                                 const details = specialistDetails[spec] || { icon: '🔍', name: spec };
                                 return `<li>${details.icon} ${details.name}</li>`;
                             }).join('')}
                         </ul>
-                    `;
-                    previewElement.style.display = 'block';
-                }
-            }
-            
-            // Show preview of specialist results
-            if (Object.keys(specialistDetails).includes(stage) && status === 'complete' && result) {
-                const specialistElement = document.querySelector(`.agent-step.specialist.${stage}`);
-                if (specialistElement) {
-                    // Find existing preview or create new one
-                    let previewElement = document.querySelector(`.${stage}-preview`);
-                    if (!previewElement) {
-                        previewElement = document.createElement('div');
-                        previewElement.className = `agent-preview ${stage}-preview`;
-                        specialistElement.after(previewElement);
-                    }
-                    
-                    // Get the issues array based on specialist type
-                    let issues = [];
-                    if (stage === 'cognitive_bias' && result.biases_identified) {
-                        issues = result.biases_identified;
-                    } else if (stage === 'emotional_manipulation' && result.manipulation_tactics) {
-                        issues = result.manipulation_tactics;
-                    } else if (stage === 'logical_fallacy' && result.fallacies_identified) {
-                        issues = result.fallacies_identified;
-                    } else if (stage === 'source_credibility' && result.credibility_issues) {
-                        issues = result.credibility_issues;
-                    } else if (stage === 'technical_accuracy' && result.accuracy_issues) {
-                        issues = result.accuracy_issues;
-                    }
-                    
-                    const details = specialistDetails[stage];
-                    
-                    previewElement.innerHTML = `
-                        <h4>${details.icon} ${details.name} Findings</h4>
-                        ${issues.length > 0 ? `
-                            <p>Identified ${issues.length} issue${issues.length !== 1 ? 's' : ''}:</p>
-                            <ul>
-                                ${issues.slice(0, 2).map(issue => {
-                                    const issueType = issue.bias_type || issue.tactic_type || 
-                                                     issue.fallacy_type || issue.issue_type || 
-                                                     issue.type;
-                                    return `<li><strong>${issueType}</strong> (${issue.severity})</li>`;
-                                }).join('')}
-                                ${issues.length > 2 ? `<li>...and ${issues.length - 2} more</li>` : ''}
-                            </ul>
-                        ` : '<p>No significant issues found</p>'}
-                    `;
-                    previewElement.style.display = 'block';
-                }
-            }
-            
-            // Show preview of summarizer results
-            if (stage === 'summarizer' && status === 'complete' && result) {
-                const previewElement = document.querySelector('.summarizer-preview');
-                if (previewElement) {
-                    previewElement.innerHTML = `
-                        <h4>Final Assessment</h4>
-                        <p>Credibility Score: <strong>${result.credibility_score}/10</strong></p>
-                        <p>Found ${result.potential_issues.length} potential issue${result.potential_issues.length !== 1 ? 's' : ''}</p>
-                        <p>${result.key_concerns.length > 0 ? `${result.key_concerns.length} key concerns identified` : 'No key concerns'}</p>
-                    `;
-                    previewElement.style.display = 'block';
-                }
-            }
-        });
-    }
-
-    // Update the agent UI based on progress
-    function updateAgentUI(stage, status, result) {
-        console.log(`Updating UI: ${stage} - ${status}`);
-        const loadingDiv = document.getElementById('loading');
-        if (!loadingDiv) {
-            console.error('Loading div not found');
-            return;
-        }
-        
-        // Update the status for the current stage
-        const stageElement = loadingDiv.querySelector(`.agent-step.${stage}`);
-        if (stageElement) {
-            const statusElement = stageElement.querySelector('.agent-status');
-            
-            if (status === 'starting') {
-                statusElement.textContent = 'Working...';
-                statusElement.className = 'agent-status working';
-                stageElement.classList.add('active');
-            } else if (status === 'complete') {
-                statusElement.textContent = 'Complete';
-                statusElement.className = 'agent-status complete';
-                stageElement.classList.add('completed');
-                stageElement.classList.remove('active');
-            } else if (status === 'error') {
-                statusElement.textContent = 'Error';
-                statusElement.className = 'agent-status error';
-                stageElement.classList.add('error');
-                stageElement.classList.remove('active');
-            }
-        }
-        
-        // Handle specialist agents
-        if (stage === 'orchestrator' && status === 'complete' && result?.selected_specialists) {
-            const specialistList = loadingDiv.querySelector('.specialist-list');
-            if (specialistList) {
-                specialistList.innerHTML = '';
+                    </div>
+                `;
                 
-                // Create elements for each selected specialist
+                // Create modules for each specialist
                 result.selected_specialists.forEach(specialist => {
-                    const details = specialistDetails[specialist] || { icon: '🔍', name: specialist };
-                    
-                    const specialistElement = document.createElement('div');
-                    specialistElement.className = `agent-step specialist ${specialist}`;
-                    specialistElement.innerHTML = `
-                        <div class="agent-icon">${details.icon}</div>
-                        <div class="agent-name">${details.name}</div>
-                        <div class="agent-status">Waiting...</div>
-                    `;
-                    specialistList.appendChild(specialistElement);
+                    createSpecialistModule(specialist);
                 });
             }
         }
+    }
+    
+    // Create a specialist module
+    function createSpecialistModule(specialist) {
+        const details = specialistDetails[specialist] || { icon: '🔍', name: specialist };
+        const specialistsContainer = document.querySelector('.agent-module.specialists .agent-module-content');
         
-        // Update individual specialist status
-        if (Object.keys(specialistDetails).includes(stage)) {
-            const specialistElement = loadingDiv.querySelector(`.agent-step.specialist.${stage}`);
-            if (specialistElement) {
-                const statusElement = specialistElement.querySelector('.agent-status');
-                
-                if (status === 'starting') {
-                    statusElement.textContent = 'Working...';
-                    statusElement.className = 'agent-status working';
-                    specialistElement.classList.add('active');
-                } else if (status === 'complete') {
-                    statusElement.textContent = 'Complete';
-                    statusElement.className = 'agent-status complete';
-                    specialistElement.classList.add('completed');
-                    specialistElement.classList.remove('active');
-                }
+        if (specialistsContainer) {
+            const specialistModule = document.createElement('div');
+            specialistModule.className = `specialist-module agent-module ${specialist}`;
+            specialistModule.innerHTML = `
+                <div class="agent-module-header" onclick="this.parentElement.classList.toggle('expanded')">
+                    <span class="toggle-icon">▶</span>
+                    <span class="agent-icon">${details.icon}</span>
+                    <span class="agent-name">${details.name}</span>
+                    <span class="agent-status">Waiting...</span>
+                </div>
+                <div class="agent-module-content">
+                    <!-- Content will be populated dynamically -->
+                </div>
+            `;
+            specialistsContainer.appendChild(specialistModule);
+        }
+    }
+    
+    // Populate a module's content with findings
+    function populateModuleContent(stage, moduleElement, result) {
+        const contentElement = moduleElement.querySelector('.agent-module-content');
+        if (!contentElement) return;
+        
+        let content = '';
+        
+        if (stage === 'screener') {
+            content = `
+                <div class="agent-module-findings">
+                    <h4>Initial Assessment</h4>
+                    <p>Credibility Score: <strong>${result.initial_score}/10</strong></p>
+                    <p>${result.needsDeepAnalysis ? 'Content requires deeper analysis' : 'No significant issues detected'}</p>
+                    <p>${result.reasoning}</p>
+                </div>
+            `;
+        } else if (stage === 'orchestrator') {
+            // Content already added in updateAgentModule
+            return;
+        } else if (stage === 'summarizer') {
+            content = `
+                <div class="agent-module-findings">
+                    <h4>Final Assessment</h4>
+                    <p>Credibility Score: <strong>${result.credibility_score}/10</strong></p>
+                    <p>Found ${result.potential_issues.length} potential issue${result.potential_issues.length !== 1 ? 's' : ''}</p>
+                    <p>${result.recommendation.substring(0, 150)}...</p>
+                </div>
+            `;
+        } else if (Object.keys(specialistDetails).includes(stage)) {
+            // Get the issues array based on specialist type
+            let issues = [];
+            if (stage === 'cognitive_bias' && result.biases_identified) {
+                issues = result.biases_identified;
+            } else if (stage === 'emotional_manipulation' && result.manipulation_tactics) {
+                issues = result.manipulation_tactics;
+            } else if (stage === 'logical_fallacy' && result.fallacies_identified) {
+                issues = result.fallacies_identified;
+            } else if (stage === 'source_credibility' && result.credibility_issues) {
+                issues = result.credibility_issues;
+            } else if (stage === 'technical_accuracy' && result.accuracy_issues) {
+                issues = result.accuracy_issues;
             }
+            
+            const details = specialistDetails[stage];
+            
+            content = `
+                <div class="agent-module-findings">
+                    <h4>${details.icon} ${details.name} Findings</h4>
+                    ${result.overall_assessment ? `<p>${result.overall_assessment}</p>` : ''}
+                    ${issues.length > 0 ? `
+                        <p>Identified ${issues.length} issue${issues.length !== 1 ? 's' : ''}:</p>
+                        <ul>
+                            ${issues.map(issue => {
+                                const issueType = issue.bias_type || issue.tactic_type || 
+                                                issue.fallacy_type || issue.issue_type || 
+                                                issue.type;
+                                return `
+                                    <li>
+                                        <strong>${issueType}</strong> (${issue.severity})
+                                        <p>${issue.explanation}</p>
+                                    </li>
+                                `;
+                            }).join('')}
+                        </ul>
+                    ` : '<p>No significant issues found</p>'}
+                </div>
+            `;
+        }
+        
+        contentElement.innerHTML = content;
+    }
+    
+    // Update the summary section
+    function updateSummary(result) {
+        // Update the summary placeholder
+        const summaryPlaceholder = document.querySelector('.summary-placeholder');
+        if (summaryPlaceholder) {
+            summaryPlaceholder.classList.add('active');
+            summaryPlaceholder.innerHTML = `
+                <div class="summary-placeholder-title">
+                    <span class="agent-icon">📊</span>
+                    <span>Analysis Summary</span>
+                </div>
+                <div class="score-circle">${result.credibility_score}</div>
+                <p style="text-align: center; margin-bottom: 1rem;">Credibility Score out of 10</p>
+                <p>${result.recommendation}</p>
+            `;
+        }
+        
+        // Update key concerns
+        const concernsPlaceholder = document.querySelector('.concerns-placeholder');
+        if (concernsPlaceholder && result.key_concerns && result.key_concerns.length > 0) {
+            concernsPlaceholder.classList.add('active');
+            concernsPlaceholder.innerHTML = `
+                <div class="summary-placeholder-title">
+                    <span class="agent-icon">⚠️</span>
+                    <span>Key Concerns</span>
+                </div>
+                <ul>
+                    ${result.key_concerns.map(concern => `<li>${concern}</li>`).join('')}
+                </ul>
+            `;
+        }
+        
+        // Hide the scroll indicator when done
+        const scrollIndicator = document.querySelector('.scroll-indicator');
+        if (scrollIndicator) {
+            scrollIndicator.style.display = 'none';
         }
     }
 
@@ -283,11 +414,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
             
-            // Hide loading screen, show results
-            loadingDiv.style.display = 'none';
-            resultsDiv.style.display = 'block';
-    
+            // Handle token limit exceeded error
             if (data.error === 'TOKEN_LIMIT_EXCEEDED') {
+                loadingDiv.style.display = 'none';
+                resultsDiv.style.display = 'block';
                 resultsDiv.innerHTML = `
                     <div class="error-message">
                         <h3>Text Too Long</h3>
@@ -298,106 +428,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
             
-            // Generate the new agent-based results view
-            let html = `<div class="agent-results-container">`;
-            
-            // Add Score at the top
-            html += `
-                <div class="agent-result-card summarizer">
-                    <div class="agent-result-header">
-                        <div class="agent-result-icon">📊</div>
-                        <h3 class="agent-result-title">Analysis Summary</h3>
-                    </div>
-                    <div class="agent-result-content">
-                        <div class="score-circle">${data.analysis.credibility_score}</div>
-                        <p style="text-align: center; margin-bottom: 1rem;">Credibility Score out of 10</p>
-                        
-                        ${data.analysis.recommendation ? `
-                            <h4>Recommendation:</h4>
-                            <p>${data.analysis.recommendation}</p>
-                        ` : ''}
-                    </div>
-                </div>
-            `;
-            
-            // Add specialists' findings if available
-            if (agentResults.specialists && Object.keys(agentResults.specialists).length > 0) {
-                Object.entries(agentResults.specialists).forEach(([specialistName, result]) => {
-                    const details = specialistDetails[specialistName] || { icon: '🔍', name: specialistName };
-                    
-                    // Get the issues array based on specialist type
-                    let issues = [];
-                    let overallAssessment = '';
-                    
-                    if (specialistName === 'cognitive_bias' && result.biases_identified) {
-                        issues = result.biases_identified;
-                        overallAssessment = result.overall_assessment;
-                    } else if (specialistName === 'emotional_manipulation' && result.manipulation_tactics) {
-                        issues = result.manipulation_tactics;
-                        overallAssessment = result.overall_assessment;
-                    } else if (specialistName === 'logical_fallacy' && result.fallacies_identified) {
-                        issues = result.fallacies_identified;
-                        overallAssessment = result.overall_assessment;
-                    } else if (specialistName === 'source_credibility' && result.credibility_issues) {
-                        issues = result.credibility_issues;
-                        overallAssessment = result.overall_assessment;
-                    } else if (specialistName === 'technical_accuracy' && result.accuracy_issues) {
-                        issues = result.accuracy_issues;
-                        overallAssessment = result.overall_assessment;
-                    }
-                    
-                    if (issues.length > 0) {
-                        html += `
-                            <div class="agent-result-card">
-                                <div class="agent-result-header">
-                                    <div class="agent-result-icon">${details.icon}</div>
-                                    <h3 class="agent-result-title">${details.name} Analysis</h3>
-                                </div>
-                                <div class="agent-result-content">
-                                    ${overallAssessment ? `<p>${overallAssessment}</p>` : ''}
-                                    <h4>Findings:</h4>
-                                    <ul>
-                                        ${issues.map(issue => {
-                                            const issueType = issue.bias_type || issue.tactic_type || 
-                                                            issue.fallacy_type || issue.issue_type || 
-                                                            issue.type;
-                                            const explanation = issue.explanation;
-                                            const severity = issue.severity;
-                                            
-                                            return `
-                                                <li>
-                                                    <strong>${issueType}</strong> (${severity})
-                                                    <p>${explanation}</p>
-                                                </li>
-                                            `;
-                                        }).join('')}
-                                    </ul>
-                                </div>
-                            </div>
-                        `;
-                    }
-                });
-            }
-            
-            // Add key concerns section
-            if (data.analysis.key_concerns && data.analysis.key_concerns.length > 0) {
-                html += `
-                    <div class="agent-result-card">
-                        <div class="agent-result-header">
-                            <div class="agent-result-icon">⚠️</div>
-                            <h3 class="agent-result-title">Key Concerns</h3>
-                        </div>
-                        <div class="agent-result-content">
-                            <ul>
-                                ${data.analysis.key_concerns.map(concern => `<li>${concern}</li>`).join('')}
-                            </ul>
-                        </div>
-                    </div>
-                `;
-            }
-            
-            html += `</div>`;
-            resultsDiv.innerHTML = html;
+            // In our new approach, loading div continues to show the evolving results
+            // We don't switch to a separate results view
         });
     }
     
@@ -411,6 +443,9 @@ document.addEventListener('DOMContentLoaded', () => {
             if (resultsDiv && loadingDiv) {
                 resultsDiv.style.display = 'none';
                 loadingDiv.style.display = 'flex';
+                
+                // Reset UI
+                createUnifiedUI();
             }
         });
     }
@@ -418,40 +453,8 @@ document.addEventListener('DOMContentLoaded', () => {
     if (window.api && window.api.onServerReady) {
         window.api.onServerReady(() => {
             console.log('Server ready event received');
-            const loadingDiv = document.getElementById('loading');
-            
-            if (loadingDiv) {
-                // Reset all agent states
-                const agentSteps = loadingDiv.querySelectorAll('.agent-step');
-                agentSteps.forEach(step => {
-                    step.classList.remove('active', 'completed', 'error');
-                    const statusElement = step.querySelector('.agent-status');
-                    if (statusElement) {
-                        statusElement.textContent = 'Waiting...';
-                        statusElement.className = 'agent-status';
-                    }
-                });
-                
-                // Clear previews
-                const previews = document.querySelectorAll('.agent-preview');
-                previews.forEach(preview => {
-                    preview.style.display = 'none';
-                    preview.innerHTML = '';
-                });
-                
-                // Clear initial findings
-                const initialFindings = document.querySelector('.initial-findings');
-                if (initialFindings) {
-                    initialFindings.style.display = 'none';
-                    initialFindings.textContent = '';
-                }
-                
-                // Clear specialist list
-                const specialistList = document.querySelector('.specialist-list');
-                if (specialistList) {
-                    specialistList.innerHTML = '';
-                }
-            }
+            // Reset UI when server is ready
+            createUnifiedUI();
         });
     }
     
