@@ -7,33 +7,34 @@ class ScreenerAgent extends BaseAgent {
     
     this.systemPrompt = {
       role: 'system',
-      content: `You are a text screener who quickly evaluates if content needs deeper analysis for misinformation, bias, manipulation tactics, or credibility issues. You only flag content that genuinely needs deeper review.`
+      content: `You are a text screener who quickly evaluates if content needs deeper analysis for misinformation, bias, or credibility issues. Be efficient and direct in your assessment.`
     };
   }
 
   formatPrompt(text, context = {}) {
     return {
       role: 'user',
-      content: `Analyze this text and determine if it needs deeper analysis for potential misinformation, manipulation, bias, or credibility issues.
+      content: `Analyze this text and determine if it needs deeper specialist analysis for potential credibility issues.
 
 Source: ${context.source || 'N/A'}
 Text: "${text}"
 
+Source credibility guidelines:
+- Content from established journalistic sources (e.g., major newspapers, wire services, public broadcasting) should only be flagged if you identify specific, substantial issues
+- Social media, personal blogs, and user-generated content warrant closer scrutiny
+- Consider both the source platform and the author/publisher when available
+
 Your task is to:
 1. Make a quick assessment of whether this content needs deeper specialist analysis
-2. Provide an initial credibility score (0-10)
-3. List which specialist analyses might be needed (choose from: cognitive_bias, emotional_manipulation, logical_fallacy, source_credibility, technical_accuracy)
-4. Explain your reasoning
+2. Provide very brief reasoning (2-3 sentences maximum)
 
 Respond in this JSON format:
 {
   "needsDeepAnalysis": boolean,
-  "initial_score": number,
-  "suggested_specialists": string[],
   "reasoning": string
 }
 
-If the content is clearly reliable, well-sourced information without manipulation tactics, respond with 'needsDeepAnalysis: false'.`
+Be extremely concise in your reasoning. Focus only on key factors that determined your decision. If the content is reliable information without significant credibility concerns, respond with 'needsDeepAnalysis: false'.`
     };
   }
 
