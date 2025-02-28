@@ -35,11 +35,7 @@ document.addEventListener('DOMContentLoaded', () => {
         summarizer: null,
         activeSpecialists: []
     };
-    
-    // Track user scrolling
-    let userIsScrolling = false;
-    let lastScrollPosition = 0;
-    
+        
     // Set keyboard shortcut text based on platform
     function updateShortcutText() {
         const shortcutElements = document.querySelectorAll('.keyboard-shortcut-text');
@@ -83,23 +79,7 @@ document.addEventListener('DOMContentLoaded', () => {
             </div>
         `;
     }
-    
-    // Add scroll event listener to detect user scrolling
-    function setupScrollTracking(scrollableContent) {
-        if (!scrollableContent) return;
         
-        scrollableContent.addEventListener('scroll', () => {
-            userIsScrolling = true;
-            lastScrollPosition = scrollableContent.scrollTop;
-            
-            // Reset the flag after a delay (user stopped scrolling)
-            clearTimeout(window.scrollTimeout);
-            window.scrollTimeout = setTimeout(() => {
-                userIsScrolling = false;
-            }, 1500); // 1.5 seconds after scrolling stops
-        });
-    }
-    
     // Create analysis UI with fixed header approach
     function createAnalysisUI() {
         const loadingDiv = document.getElementById('loading');
@@ -161,9 +141,6 @@ document.addEventListener('DOMContentLoaded', () => {
         
         // Add app container to loading div
         loadingDiv.appendChild(appContainer);
-        
-        // Setup scroll tracking
-        setupScrollTracking(scrollableContent);
         
         // Force scrollable content to start at the top
         setTimeout(() => {
@@ -704,13 +681,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Handle summarizer update
     function handleSummarizerUpdate(status, result, ui) {
-        const { resultsContainer, scrollableContent } = ui;
-        
-        // If this is the first time, set up scroll tracking
-        if (!window.scrollTrackingSetup && scrollableContent) {
-            setupScrollTracking(scrollableContent);
-            window.scrollTrackingSetup = true;
-        }
+        const { resultsContainer } = ui;
         
         // Create summarizer card if it doesn't exist
         let summaryCard = document.querySelector('.result-card[data-card-id="summary"]');
@@ -719,11 +690,7 @@ document.addEventListener('DOMContentLoaded', () => {
             summaryCard = createResultCard('summary', 'Final Assessment', '📊', 'in-progress');
             if (resultsContainer) {
                 resultsContainer.appendChild(summaryCard);
-                
-                // Only scroll if user is not actively reading content
-                if (scrollableContent && !userIsScrolling) {
-                    summaryCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                }
+                // No auto-scrolling - user controls their view
             }
         }
         
@@ -732,11 +699,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (summaryCard) {
                 const content = createFinalAssessmentCard(result);
                 updateCardContent('summary', content, 'complete');
-                
-                // Only scroll if user is not actively reading content
-                if (scrollableContent && !userIsScrolling) {
-                    summaryCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                }
+                // No auto-scrolling - user stays where they are reading
             }
         }
     }

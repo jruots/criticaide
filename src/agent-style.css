@@ -486,13 +486,14 @@
     position: sticky;
     top: 0;
     z-index: 100;
-    padding: 10px 0;
+    padding: 10px 20px; /* Add horizontal padding (left/right) */
     background: var(--color-background);
     border-bottom: 1px solid rgba(255, 255, 255, 0.05);
   }
 
   .progress-bar-container {
-    max-width: 900px; /* Match content width */
+    max-width: 900px;
     margin-left: auto;
     margin-right: auto;
+    width: 100%;
   }
