@@ -428,36 +428,71 @@
 
   /* More prominent title styling */
   .criticaide-title {
-      color: var(--color-primary);
-      font-size: 2.5rem;
-      font-weight: 700;
-      text-shadow: 0 0 10px rgba(14, 165, 233, 0.3);
-      letter-spacing: 1px;
-      display: inline-block;
-      animation: glow 1.5s ease-in-out infinite alternate;
+    color: var(--color-primary);
+    font-size: 2.5rem;
+    font-weight: 700;
+    text-shadow: 0 0 10px rgba(14, 165, 233, 0.3);
+    letter-spacing: 1px;
+    display: inline-block;
+    animation: glow 1.5s ease-in-out infinite alternate;
   }
 
   @keyframes glow {
-      from {
-          text-shadow: 0 0 5px rgba(14, 165, 233, 0.2);
-      }
-      to {
-          text-shadow: 0 0 15px rgba(14, 165, 233, 0.5);
-      }
+    from {
+        text-shadow: 0 0 5px rgba(14, 165, 233, 0.2);
+    }
+    to {
+        text-shadow: 0 0 15px rgba(14, 165, 233, 0.5);
+    }
   }
 
   /* Style the tagline */
   .tagline {
-      color: var(--color-text-secondary);
-      font-style: italic;
-      margin-top: 2rem;
+    color: var(--color-text-secondary);
+    font-style: italic;
+    margin-top: 2rem;
   }
 
   /* Enhance the empty state overall */
   .empty-state {
-      padding: 3rem;
+    padding: 3rem;
   }
 
   .empty-state-title {
-      margin-bottom: 2rem;
+    margin-bottom: 2rem;
+  }
+
+  /* Scrollable content area improvements */
+  .scrollable-content {
+    padding: 0 20px 40px 20px; /* Wider padding */
+  }
+
+  /* Result cards spacing */
+  .result-card {
+    margin-bottom: 20px; /* Slightly more spacing between cards */
+    max-width: 900px; /* Maximum width for better reading */
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  /* E-reader-like experience */
+  .app-container {
+    max-width: 1000px;
+    margin: 0 auto;
+  }
+
+  /* Sticky progress bar even when scrolling */
+  .fixed-header {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    padding: 10px 0;
+    background: var(--color-background);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  }
+
+  .progress-bar-container {
+    max-width: 900px; /* Match content width */
+    margin-left: auto;
+    margin-right: auto;
   }

@@ -36,6 +36,10 @@ document.addEventListener('DOMContentLoaded', () => {
         activeSpecialists: []
     };
     
+    // Track user scrolling
+    let userIsScrolling = false;
+    let lastScrollPosition = 0;
+    
     // Set keyboard shortcut text based on platform
     function updateShortcutText() {
         const shortcutElements = document.querySelectorAll('.keyboard-shortcut-text');
@@ -78,6 +82,22 @@ document.addEventListener('DOMContentLoaded', () => {
                 </p>
             </div>
         `;
+    }
+    
+    // Add scroll event listener to detect user scrolling
+    function setupScrollTracking(scrollableContent) {
+        if (!scrollableContent) return;
+        
+        scrollableContent.addEventListener('scroll', () => {
+            userIsScrolling = true;
+            lastScrollPosition = scrollableContent.scrollTop;
+            
+            // Reset the flag after a delay (user stopped scrolling)
+            clearTimeout(window.scrollTimeout);
+            window.scrollTimeout = setTimeout(() => {
+                userIsScrolling = false;
+            }, 1500); // 1.5 seconds after scrolling stops
+        });
     }
     
     // Create analysis UI with fixed header approach
@@ -141,6 +161,9 @@ document.addEventListener('DOMContentLoaded', () => {
         
         // Add app container to loading div
         loadingDiv.appendChild(appContainer);
+        
+        // Setup scroll tracking
+        setupScrollTracking(scrollableContent);
         
         // Force scrollable content to start at the top
         setTimeout(() => {
@@ -618,8 +641,16 @@ document.addEventListener('DOMContentLoaded', () => {
             // Store the list of expected specialists
             analysisResults.activeSpecialists = result.selected_specialists;
             
-            // Update progress
+            // Explicitly update to specialists stage
             updateProgress('specialists');
+            
+            // Add a small delay before updating the stage text to ensure the UI updates
+            setTimeout(() => {
+                const stageLabel = document.querySelector('.progress-label span:first-child');
+                if (stageLabel) {
+                    stageLabel.textContent = 'Stage: Specialist Analysis';
+                }
+            }, 100);
         }
     }
 
@@ -675,6 +706,12 @@ document.addEventListener('DOMContentLoaded', () => {
     function handleSummarizerUpdate(status, result, ui) {
         const { resultsContainer, scrollableContent } = ui;
         
+        // If this is the first time, set up scroll tracking
+        if (!window.scrollTrackingSetup && scrollableContent) {
+            setupScrollTracking(scrollableContent);
+            window.scrollTrackingSetup = true;
+        }
+        
         // Create summarizer card if it doesn't exist
         let summaryCard = document.querySelector('.result-card[data-card-id="summary"]');
         
@@ -683,8 +720,8 @@ document.addEventListener('DOMContentLoaded', () => {
             if (resultsContainer) {
                 resultsContainer.appendChild(summaryCard);
                 
-                // Scroll to show the summary card
-                if (scrollableContent) {
+                // Only scroll if user is not actively reading content
+                if (scrollableContent && !userIsScrolling) {
                     summaryCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
                 }
             }
@@ -696,8 +733,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 const content = createFinalAssessmentCard(result);
                 updateCardContent('summary', content, 'complete');
                 
-                // Scroll to show the summary card
-                if (scrollableContent) {
+                // Only scroll if user is not actively reading content
+                if (scrollableContent && !userIsScrolling) {
                     summaryCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
                 }
             }
