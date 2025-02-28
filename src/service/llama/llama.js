@@ -39,7 +39,7 @@ class LlamaCppService {
 
     async getModelPath() {
         if (this.isDev) {
-            return path.join(process.cwd(), 'resources', 'llama', 'models', 'Phi-3.5-mini-instruct-Q4_K_M.gguf');
+            return path.join(process.cwd(), 'resources', 'llama', 'models', 'Phi-3.5-mini-instruct-Q4_K_M.gguf'); //'phi-4.Q4_K_M.gguf'); //'Phi-3.5-mini-instruct-Q4_K_M.gguf');
         }
         
         // In production, use app data directory
@@ -47,7 +47,7 @@ class LlamaCppService {
         ? path.join(os.homedir(), 'Documents', 'Criticaide', 'models')  // Mac path
         : path.join(process.env.APPDATA, 'Criticaide', 'models');       // Windows path
         
-        return path.join(appDataPath, 'Phi-3.5-mini-instruct-Q4_K_M.gguf');
+        return path.join(appDataPath, 'Phi-3.5-mini-instruct-Q4_K_M.gguf'); 
     }
 
     async getBinaryPath() {

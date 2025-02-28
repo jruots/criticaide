@@ -1,0 +1,499 @@
+/* simplified-agent-style.css */
+/* Simpler, card-based UI for agent results */
+
+:root {
+    --color-background: #1a1b1e;
+    --color-surface: #25262b;
+    --color-surface-darker: #2c2e33;
+    --color-primary: #0ea5e9;
+    --color-primary-dark: #075985;
+    --color-success: #10b981;
+    --color-warning: #f59e0b;
+    --color-danger: #ef4444;
+    --color-text: #e5e7eb;
+    --color-text-secondary: #9ca3af;
+    
+    --transition-speed: 0.3s;
+    --border-radius: 8px;
+    --card-spacing: 16px;
+  }
+  
+  /* Remove any body defaults that might interfere */
+  body {
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    background: var(--color-background);
+  }
+  
+  /* Separate containers for fixed and scrollable content */
+  .app-container {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    width: 100%;
+    overflow: hidden;
+  }
+  
+  .fixed-header {
+    flex: 0 0 auto;
+    background: var(--color-background);
+    padding: 20px 0 0 0;
+    z-index: 10;
+  }
+  
+  .scrollable-content {
+    flex: 1;
+    overflow-y: auto;
+    padding: 0 10px 40px 10px;
+  }
+  
+  /* Empty state */
+  .empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 80vh;
+    text-align: center;
+    color: var(--color-text-secondary);
+    padding: 2rem;
+  }
+  
+  .empty-state-icon {
+    font-size: 4rem;
+    margin-bottom: 1rem;
+    opacity: 0.6;
+  }
+  
+  .empty-state-title {
+    font-size: 1.5rem;
+    margin-bottom: 1rem;
+    color: var(--color-text);
+  }
+  
+  .empty-state-subtitle {
+    max-width: 600px;
+    margin-bottom: 2rem;
+  }
+  
+  .keyboard-shortcut {
+    display: inline-block;
+    padding: 0.25rem 0.5rem;
+    background: var(--color-surface-darker);
+    border-radius: 4px;
+    font-family: monospace;
+    margin: 0 0.25rem;
+  }
+  
+  /* Analysis container */
+  .analysis-container {
+    max-width: 700px;
+    margin: 0 auto;
+  }
+  
+  /* Progress indicator */
+  .progress-bar-container {
+    max-width: 700px;
+    margin: 0 auto;
+    padding: 1rem 0;
+    background: var(--color-background);
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+    border-radius: var(--border-radius);
+    margin-bottom: 1rem;
+  }
+  
+  .progress-bar {
+    height: 6px;
+    background: var(--color-surface);
+    border-radius: var(--border-radius);
+    overflow: hidden;
+  }
+  
+  .progress-indicator {
+    height: 100%;
+    background: var(--color-primary);
+    transition: width var(--transition-speed) ease-out;
+  }
+  
+  .progress-label {
+    display: flex;
+    justify-content: space-between;
+    color: var(--color-text-secondary);
+    font-size: 0.8rem;
+    margin-top: 0.5rem;
+  }
+  
+  /* Result cards */
+  .result-card {
+    background: var(--color-surface);
+    border-radius: var(--border-radius);
+    margin-bottom: var(--card-spacing);
+    overflow: hidden;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+    opacity: 0;
+    transform: translateY(10px);
+    animation: fadeIn var(--transition-speed) ease-out forwards;
+  }
+  
+  @keyframes fadeIn {
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  
+  .result-card-header {
+    padding: 1rem;
+    display: flex;
+    align-items: center;
+    background: var(--color-surface-darker);
+  }
+  
+  .card-icon {
+    font-size: 1.5rem;
+    margin-right: 0.75rem;
+  }
+  
+  .card-title {
+    font-weight: 500;
+    flex-grow: 1;
+  }
+  
+  .card-status {
+    font-size: 0.85rem;
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    color: var(--color-text-secondary);
+  }
+  
+  .status-in-progress {
+    background: rgba(14, 165, 233, 0.2);
+    color: var(--color-primary);
+    animation: pulse 1.5s infinite;
+  }
+  
+  .status-complete {
+    background: rgba(16, 185, 129, 0.2);
+    color: var(--color-success);
+  }
+  
+  .status-warning {
+    background: rgba(245, 158, 11, 0.2);
+    color: var(--color-warning);
+  }
+  
+  .status-error {
+    background: rgba(239, 68, 68, 0.2);
+    color: var(--color-danger);
+  }
+  
+  @keyframes pulse {
+    0%, 100% { opacity: 0.8; }
+    50% { opacity: 1; }
+  }
+  
+  .result-card-content {
+    padding: 1rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+  }
+  
+  /* Expandable card */
+  .expandable-header {
+    cursor: pointer;
+    user-select: none;
+  }
+  
+  .expandable-header .expand-icon {
+    margin-left: 0.5rem;
+    transition: transform var(--transition-speed) ease;
+    display: inline-block;
+  }
+  
+  .expandable-content {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height var(--transition-speed) ease-out;
+  }
+  
+  .expanded .expandable-header .expand-icon {
+    transform: rotate(180deg);
+  }
+  
+  .expanded .expandable-content {
+    max-height: 2000px; /* Large enough for most content */
+  }
+  
+  /* Issue list */
+  .issue-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+  
+  .issue-item {
+    background: var(--color-surface-darker);
+    border-radius: var(--border-radius);
+    padding: 1rem;
+    margin-bottom: 0.75rem;
+  }
+  
+  .issue-header {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 0.5rem;
+    align-items: center;
+  }
+  
+  .issue-type {
+    font-weight: 500;
+  }
+  
+  .issue-severity {
+    font-size: 0.8rem;
+    padding: 0.2rem 0.5rem;
+    border-radius: 4px;
+    background: rgba(0, 0, 0, 0.2);
+  }
+  
+  .severity-low {
+    color: var(--color-success);
+  }
+  
+  .severity-medium {
+    color: var(--color-warning);
+  }
+  
+  .severity-high {
+    color: var(--color-danger);
+  }
+  
+  .issue-explanation {
+    color: var(--color-text-secondary);
+    font-size: 0.95rem;
+    margin: 0;
+  }
+  
+  /* Score display */
+  .score-display {
+    display: flex;
+    align-items: center;
+    margin-bottom: 1rem;
+  }
+  
+  .score-circle {
+    width: 70px;
+    height: 70px;
+    border-radius: 50%;
+    background: var(--color-surface-darker);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 1.5rem;
+    border: 3px solid;
+    font-size: 1.8rem;
+    font-weight: bold;
+  }
+  
+  .score-high {
+    color: var(--color-success);
+    border-color: var(--color-success);
+  }
+  
+  .score-medium {
+    color: var(--color-warning);
+    border-color: var(--color-warning);
+  }
+  
+  .score-low {
+    color: var(--color-danger);
+    border-color: var(--color-danger);
+  }
+  
+  .score-details {
+    flex-grow: 1;
+  }
+  
+  .score-label {
+    font-size: 0.9rem;
+    margin-bottom: 0.25rem;
+    color: var(--color-text-secondary);
+  }
+  
+  .recommendation {
+    margin-top: 1rem;
+    padding: 1rem;
+    background: var(--color-surface-darker);
+    border-radius: var(--border-radius);
+    border-left: 3px solid var(--color-primary);
+  }
+  
+  /* Key concerns */
+  .key-concerns {
+    margin-top: 1rem;
+  }
+  
+  .key-concerns-list {
+    list-style: none;
+    padding: 0;
+    margin: 0.5rem 0 0 0;
+  }
+  
+  .key-concerns-item {
+    padding: 0.5rem 0 0.5rem 1.5rem;
+    position: relative;
+  }
+  
+  .key-concerns-item:before {
+    content: "⚠️";
+    position: absolute;
+    left: 0;
+    top: 0.5rem;
+  }
+  
+  /* Loading state */
+  .loading-indicator {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin: 2rem 0;
+    color: var(--color-text-secondary);
+  }
+  
+  .spinner {
+    width: 40px;
+    height: 40px;
+    border: 3px solid var(--color-surface);
+    border-top: 3px solid var(--color-primary);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin-bottom: 1rem;
+  }
+  
+  .loading-text {
+    transition: opacity 0.5s ease;
+  }
+  
+  @keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
+  
+  /* Accessibility */
+  button:focus, 
+  .expandable-header:focus {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
+  }
+  
+  /* Responsive adjustments */
+  @media (max-width: 600px) {
+    .scrollable-content {
+      padding: 0 5px 40px 5px;
+    }
+    
+    .score-display {
+      flex-direction: column;
+      align-items: flex-start;
+    }
+    
+    .score-circle {
+      margin: 0 0 1rem 0;
+    }
+  }
+
+    .criticaide-blue {
+      color: var(--color-primary);
+  }
+
+  .app-footer .shortcut-hint {
+      color: var(--color-text-secondary);
+      font-size: 0.9rem;
+  }
+
+  .criticaide-logo {
+      width: 100px;
+      height: 100px;
+      animation: float 3s ease-in-out infinite;
+  }
+
+  @keyframes float {
+      0%, 100% { transform: translateY(0px); }
+      50% { transform: translateY(-10px); }
+  }
+
+  .logo-container {
+      margin-bottom: 1rem;
+  }
+
+  /* More prominent title styling */
+  .criticaide-title {
+    color: var(--color-primary);
+    font-size: 2.5rem;
+    font-weight: 700;
+    text-shadow: 0 0 10px rgba(14, 165, 233, 0.3);
+    letter-spacing: 1px;
+    display: inline-block;
+    animation: glow 1.5s ease-in-out infinite alternate;
+  }
+
+  @keyframes glow {
+    from {
+        text-shadow: 0 0 5px rgba(14, 165, 233, 0.2);
+    }
+    to {
+        text-shadow: 0 0 15px rgba(14, 165, 233, 0.5);
+    }
+  }
+
+  /* Style the tagline */
+  .tagline {
+    color: var(--color-text-secondary);
+    font-style: italic;
+    margin-top: 2rem;
+  }
+
+  /* Enhance the empty state overall */
+  .empty-state {
+    padding: 3rem;
+  }
+
+  .empty-state-title {
+    margin-bottom: 2rem;
+  }
+
+  /* Scrollable content area improvements */
+  .scrollable-content {
+    padding: 0 20px 40px 20px; /* Wider padding */
+  }
+
+  /* Result cards spacing */
+  .result-card {
+    margin-bottom: 20px; /* Slightly more spacing between cards */
+    max-width: 900px; /* Maximum width for better reading */
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  /* E-reader-like experience */
+  .app-container {
+    max-width: 1000px;
+    margin: 0 auto;
+  }
+
+  /* Sticky progress bar even when scrolling */
+  .fixed-header {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    padding: 10px 20px; /* Add horizontal padding (left/right) */
+    background: var(--color-background);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  }
+
+  .progress-bar-container {
+    max-width: 900px;
+    margin-left: auto;
+    margin-right: auto;
+    width: 100%;
+  }

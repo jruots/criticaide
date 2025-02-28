@@ -2,17 +2,17 @@ const { app, BrowserWindow, ipcMain, clipboard, Notification } = require('electr
 const path = require('path');
 const { GlobalKeyboardListener } = require('node-global-key-listener');
 const LlamaCppService = require('./src/service/llama/llama.js');
+const AgentService = require('./src/service/agentService.js');
 const logger = require('./src/utils/logger');
 const os = require('os');
 const { checkMemory } = require('./src/utils/memory');
-let llamaService = null;
-const MAX_DETAILED_LOGGING_ATTEMPTS = 3;
-let shortcutAttemptCount = 0;
 
 let mainWindow;
+let llamaService = null;
+let agentService = null;
 const keyboardListener = new GlobalKeyboardListener();
-
-const { analyzePrompt: defaultAnalyze } = require('./src/prompts/phi35/analyze.js');
+const MAX_DETAILED_LOGGING_ATTEMPTS = 3;
+let shortcutAttemptCount = 0;
 
 let store = null;
 
@@ -36,7 +36,7 @@ function createWindow() {
 
     mainWindow = new BrowserWindow({
         width: 800,
-        height: 600,
+        height: 900,
         show: true,
         webPreferences: {
             nodeIntegration: false,
@@ -60,30 +60,15 @@ function createWindow() {
     });
 }
 
-async function checkServerConnection() {
-    logger.setScope('LlamaCpp');
-    logger.info('Checking server connection...');
-    try {
-        logger.debug('Making request to server health endpoint...');
-        const response = await fetch('http://127.0.0.1:8080/health');
-        if (!response.ok) {
-            logger.warn(`Server responded with status: ${response.status}`);
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        logger.info('Server connection successful');
-        return true;
-    } catch (error) {
-        logger.error('Server connection failed:', error);
-        if (error.cause) {
-            logger.error('Error cause:', error.cause);
-        }
-        return false;
+function sendAgentProgress(update) {
+    if (mainWindow?.webContents) {
+        mainWindow.webContents.send('agent-progress', update);
     }
 }
 
 async function analyzeText(text, source='N/A') {
     logger.setScope('Analysis');
-    logger.info('Starting text analysis...');
+    logger.info('Starting agent-based text analysis...');
     logger.debug(`Text source: ${source}`);
 
     mainWindow.webContents.send('analysis-start');
@@ -100,9 +85,9 @@ async function analyzeText(text, source='N/A') {
     }
 
     try {
-        logger.debug('Starting analysis with LlamaCpp service...');
+        logger.debug('Starting analysis with agent service...');
         try {
-            const analysis = await llamaService.analyze(text, source);
+            const analysis = await agentService.analyze(text, source);
             logger.info('Analysis complete');
             logger.debug('Analysis result:', analysis);
             return analysis;
@@ -139,28 +124,10 @@ function extractSourceFromClipboard() {
     const formats = clipboard.availableFormats();
     logger.debug(`Available clipboard formats: ${formats.join(', ')}`);
     
-    formats.forEach(format => {
-        try {
-            if (format === 'text/html') {
-                const html = clipboard.readHTML();
-                logger.debug('HTML Content (first 500 chars):', html.substring(0, 500));
-            } else if (format === 'text/plain') {
-                const text = clipboard.readText();
-                logger.debug('Plain Text Content (first 100 chars):', text.substring(0, 100));
-            } else {
-                const content = clipboard.readBuffer(format).toString();
-                logger.debug(`Content for ${format} (first 100 chars):`, content.substring(0, 100));
-            }
-        } catch (error) {
-            logger.error(`Error reading format ${format}:`, error);
-        }
-    });
-
     if (formats.includes('text/html')) {
         const html = clipboard.readHTML();
         logger.debug('Found HTML content in clipboard');
-        logger.debug('Full HTML length:', html.length);
-
+        
         try {
             if (html.includes('SourceURL:')) {
                 logger.debug('Found SourceURL marker in HTML');
@@ -169,23 +136,12 @@ function extractSourceFromClipboard() {
                     logger.info('Found source URL in metadata:', match[1].trim());
                     return match[1].trim();
                 }
-            } else {
-                logger.debug('No SourceURL marker found in HTML');
             }
 
             const urlMatch = html.match(/https?:\/\/[^\s<>"']+/);
             if (urlMatch) {
                 logger.info('Found URL in HTML:', urlMatch[0]);
                 return urlMatch[0];
-            } else {
-                logger.debug('No URLs found in HTML content');
-                const hrefIndices = [...html.matchAll(/href=/g)].map(match => match.index);
-                if (hrefIndices.length > 0) {
-                    logger.debug('Found href attributes at positions:', hrefIndices.join(', '));
-                    hrefIndices.forEach(index => {
-                        logger.debug(`Context around href (${index}):`, html.substring(Math.max(0, index - 20), index + 40));
-                    });
-                }
             }
         } catch (error) {
             logger.error('Error parsing HTML content:', error);
@@ -279,7 +235,7 @@ function setupKeyboardShortcuts() {
                             logger.debug(`Extracted source: ${source}`);
                             new Notification({
                                 title: 'Analysis Status',
-                                body: 'Analyzing text...'
+                                body: 'Analyzing text with agent system...'
                             }).show();
 
                             analyzeText(selectedText, source).then(analysis => {
@@ -304,26 +260,10 @@ function setupKeyboardShortcuts() {
                             }).show();
                         }
                     }, 100);
-                } else if (shortcutAttemptCount < MAX_DETAILED_LOGGING_ATTEMPTS) {
-                    logger.debugShortcut(
-                        `Detailed key event - Key pressed: ${e.name}, ` +
-                        `Current keys: [${Array.from(currentKeys).join(', ')}], ` +
-                        `Platform: ${process.platform}`
-                    );
-                } else if (hasCtrlOrCmd || hasAltOrOption || hasShift || hasT) {
-                    logger.debug(`Potential shortcut key: ${e.name}`);
                 }
             } else if (e.state === 'UP') {
                 const keyName = e.name;
                 currentKeys.delete(keyName);
-                
-                if (shortcutAttemptCount < MAX_DETAILED_LOGGING_ATTEMPTS) {
-                    logger.debugShortcut(
-                        `Detailed key event - Key released: ${keyName}, ` +
-                        `Remaining keys: [${Array.from(currentKeys).join(', ')}], ` +
-                        `Platform: ${process.platform}`
-                    );
-                }
             }
         };
         
@@ -336,7 +276,7 @@ function setupKeyboardShortcuts() {
 app.whenReady().then(async () => {
     try {
         logger.setScope('Startup');
-        logger.info('Starting application...');
+        logger.info('Starting Criticaide Agents PoC...');
         logSystemInfo();
         
         const Store = await import('electron-store');
@@ -350,6 +290,11 @@ app.whenReady().then(async () => {
         await llamaService.serve();
         logger.info('LlamaCpp server started');
         
+        // Initialize agent service
+        agentService = new AgentService(llamaService);
+        agentService.init(sendAgentProgress);
+        logger.info('Agent service initialized');
+        
         // Server is ready - send event only if window exists
         if (mainWindow?.webContents) {
             mainWindow.webContents.send('server-ready');
@@ -360,7 +305,7 @@ app.whenReady().then(async () => {
         const copyKey = isMac ? 'Cmd+C' : 'Ctrl+C';
         const shortcutKey = isMac ? 'Cmd+Option+Shift+T' : 'Ctrl+Alt+Shift+T';
         new Notification({
-            title: 'Welcome!',
+            title: 'Welcome to Criticaide Agents!',
             body: `App is ready! To analyze text:\n1. Select text\n2. Press ${copyKey}\n3. Press ${shortcutKey}`
         }).show();
         
