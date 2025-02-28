@@ -14,8 +14,7 @@
     "start:mac": "cross-env NODE_ENV=development electron .",
     "dev:mac": "cross-env NODE_ENV=development electron .",
     "prebuild:mac": "npm run verify-deps && rimraf dist",
-    "build:mac": "cross-env NODE_ENV=production electron-builder --mac --publish never",
-    "dev:agents": "cross-env NODE_ENV=development electron main-agents.js"
+    "build:mac": "cross-env NODE_ENV=production electron-builder --mac --publish never"
   },
   "build": {
     "appId": "com.criticaide.app",

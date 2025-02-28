@@ -10,6 +10,10 @@ contextBridge.exposeInMainWorld('api', {
         ipcRenderer.on('analysis-start', () => callback());
     },
 
+    onAgentProgress: (callback) => {
+        ipcRenderer.on('agent-progress', (event, update) => callback(update));
+    },
+
     onInitialSetup: (callback) => {
         ipcRenderer.on('show-initial-setup', () => callback());
     },
@@ -22,7 +26,7 @@ contextBridge.exposeInMainWorld('api', {
         ipcRenderer.on('initial-setup-error', (event, error) => callback(error));
     },
 
-    // New server events
+    // Server events
     onServerStarting: (callback) => {
         ipcRenderer.on('server-starting', () => callback());
     },
