@@ -401,3 +401,63 @@
       margin: 0 0 1rem 0;
     }
   }
+
+    .criticaide-blue {
+      color: var(--color-primary);
+  }
+
+  .app-footer .shortcut-hint {
+      color: var(--color-text-secondary);
+      font-size: 0.9rem;
+  }
+
+  .criticaide-logo {
+      width: 100px;
+      height: 100px;
+      animation: float 3s ease-in-out infinite;
+  }
+
+  @keyframes float {
+      0%, 100% { transform: translateY(0px); }
+      50% { transform: translateY(-10px); }
+  }
+
+  .logo-container {
+      margin-bottom: 1rem;
+  }
+
+  /* More prominent title styling */
+  .criticaide-title {
+      color: var(--color-primary);
+      font-size: 2.5rem;
+      font-weight: 700;
+      text-shadow: 0 0 10px rgba(14, 165, 233, 0.3);
+      letter-spacing: 1px;
+      display: inline-block;
+      animation: glow 1.5s ease-in-out infinite alternate;
+  }
+
+  @keyframes glow {
+      from {
+          text-shadow: 0 0 5px rgba(14, 165, 233, 0.2);
+      }
+      to {
+          text-shadow: 0 0 15px rgba(14, 165, 233, 0.5);
+      }
+  }
+
+  /* Style the tagline */
+  .tagline {
+      color: var(--color-text-secondary);
+      font-style: italic;
+      margin-top: 2rem;
+  }
+
+  /* Enhance the empty state overall */
+  .empty-state {
+      padding: 3rem;
+  }
+
+  .empty-state-title {
+      margin-bottom: 2rem;
+  }

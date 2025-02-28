@@ -2,6 +2,12 @@ console.log('Simplified renderer-agents.js loaded!');
 
 document.addEventListener('DOMContentLoaded', () => {
     console.log('DOM content loaded in simplified-renderer-agents.js');
+
+    // Update the shortcut text in the header based on platform
+    const headerSubtitle = document.querySelector('.header-subtitle');
+    const isMac = window.api.platform === 'darwin';
+    const shortcutText = isMac ? 'Cmd+Option+Shift+T' : 'Ctrl+Alt+Shift+T';
+    headerSubtitle.textContent = `Press ${shortcutText} to analyze copied text`;
     
     // Configuration
     const specialistTypes = {
@@ -46,26 +52,32 @@ document.addEventListener('DOMContentLoaded', () => {
         const loadingDiv = document.getElementById('loading');
         if (!loadingDiv) return;
         
+        // Determine platform-specific shortcuts
+        const isMac = window.api.platform === 'darwin';
+        const copyShortcut = isMac ? 'Cmd+C' : 'Ctrl+C';
+        const analyzeShortcut = isMac ? 'Cmd+Option+Shift+T' : 'Ctrl+Alt+Shift+T';
+        
+        // Use the actual app icon
+        const iconHtml = `<img src="../resources/icons/icon.png" alt="Criticaide Logo" class="criticaide-logo">`;
+        
         loadingDiv.innerHTML = `
             <div class="empty-state">
-                <div class="empty-state-icon">🔍</div>
-                <h2 class="empty-state-title">Criticaide Agents</h2>
+                <div class="logo-container">
+                    ${iconHtml}
+                </div>
+                <h2 class="empty-state-title"><span class="criticaide-title">Criticaide</span></h2>
                 <p class="empty-state-subtitle">
                     Select any text you want to analyze, copy it with 
-                    <span class="keyboard-shortcut">Ctrl+C</span> or 
-                    <span class="keyboard-shortcut">Cmd+C</span>, 
+                    <span class="keyboard-shortcut">${copyShortcut}</span>, 
                     then press 
-                    <span class="keyboard-shortcut keyboard-shortcut-text">Ctrl+Alt+Shift+T</span> 
+                    <span class="keyboard-shortcut">${analyzeShortcut}</span> 
                     to analyze for credibility.
                 </p>
-                <p class="empty-state-subtitle">
-                    Criticaide will help identify potential misinformation, manipulation tactics,
-                    and credibility issues in the text.
+                <p class="empty-state-subtitle tagline">
+                    Your first line of defense in an era of digital manipulation.
                 </p>
             </div>
         `;
-        
-        updateShortcutText();
     }
     
     // Create analysis UI with fixed header approach
