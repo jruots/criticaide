@@ -113,6 +113,19 @@ npm start
 
 This is an evolving FOSS project aimed at strengthening critical thinking and reducing manipulation in our information ecosystem. Contributions, ideas, and feedback are welcome - so please do join me in making the world a better place! See the [Contributing Guidelines](https://github.com/jruots/criticaide/blob/main/src/docs/CONTRIBUTING.md) for more information.
 
+### Reporting Issues
+
+If you encounter any problems with Criticaide, please report them through the [GitHub issues page](https://github.com/jruots/criticaide/issues). 
+
+When reporting issues, please include:
+- Your operating system and version
+- Criticaide version
+- Steps to reproduce the issue
+- Log files (located in `%APPDATA%\Roaming\Criticaide\logs\` on Windows or `~/Documents/Criticaide/logs/` on macOS)
+- System information (especially GPU details for performance issues)
+
+Using the issue template will help ensure we have all the information needed to address your problem quickly.
+
 ## License
 
 MIT License
