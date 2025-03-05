@@ -37,9 +37,14 @@ class LlamaCppService {
         }
     }
 
+
+    //ibm-granite_granite-3.2-2b-instruct-Q5_K_M.gguf is a good candidate for the smallest model class, works surprisingly well. may want to compage against gemma 2 2b
+    //need to find a 7b model that is the best for high model size
+    //consider doing ultra high model class which would be phi 4 14b
+
     async getModelPath() {
         if (this.isDev) {
-            return path.join(process.cwd(), 'resources', 'llama', 'models', 'Phi-3.5-mini-instruct-Q4_K_M.gguf'); //'microsoft_Phi-4-mini-instruct-Q4_K_M.gguf'); //'Phi-3.5-mini-instruct-Q4_K_M.gguf');
+            return path.join(process.cwd(), 'resources', 'llama', 'models', 'Phi-3.5-mini-instruct-Q4_K_M.gguf'); //'ibm-granite_granite-3.2-2b-instruct-Q5_K_M.gguf'); //'Phi-3.5-mini-instruct-Q4_K_M.gguf');
         }
         
         // In production, use app data directory
