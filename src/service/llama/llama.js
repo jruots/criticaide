@@ -37,9 +37,14 @@ class LlamaCppService {
         }
     }
 
+
+    //ibm-granite_granite-3.2-2b-instruct-Q5_K_M.gguf is a good candidate for the smallest model class, works surprisingly well. may want to compage against gemma 2 2b
+    //need to find a 7b model that is the best for high model size
+    //consider doing ultra high model class which would be phi 4 14b
+
     async getModelPath() {
         if (this.isDev) {
-            return path.join(process.cwd(), 'resources', 'llama', 'models', 'Phi-3.5-mini-instruct-Q4_K_M.gguf'); //'phi-4.Q4_K_M.gguf'); //'Phi-3.5-mini-instruct-Q4_K_M.gguf');
+            return path.join(process.cwd(), 'resources', 'llama', 'models', 'Phi-3.5-mini-instruct-Q4_K_M.gguf'); //'ibm-granite_granite-3.2-2b-instruct-Q5_K_M.gguf'); //'Phi-3.5-mini-instruct-Q4_K_M.gguf');
         }
         
         // In production, use app data directory
@@ -341,29 +346,40 @@ class LlamaCppService {
             logger.info(`Using short path for model: ${modelPath}`);
         }
     
-        // Attempt to start server, starting with GPU and falling back to CPU
+        // Check if integrated graphics with limited VRAM
+        const hasLimitedGPU = await this.hasLimitedGPU();
         let serverStarted = false;
-        let lastError = null;
-        
-        // First try with GPU acceleration
-        try {
-            logger.info('Attempting to start with GPU acceleration...');
-            await this.startServer(modelPath, 99); // GPU mode
-            this.serverRetries = 0;
-            serverStarted = true;
-            return 'system';
-        } catch (error) {
-            logger.warn('GPU acceleration failed, will try CPU-only mode:', error);
-            lastError = error;
-            
-            // Ensure process is completely stopped
-            await this.stop();
-            
-            // Add a brief pause to make sure resources are released
-            await new Promise(resolve => setTimeout(resolve, 1000));
+    
+        // Skip GPU attempt if system has very limited GPU memory
+        if (hasLimitedGPU) {
+            logger.info('Detected limited GPU memory, skipping GPU acceleration attempt');
+        } else {
+            // Try with GPU acceleration first
+            try {
+                logger.info('Attempting to start with GPU acceleration...');
+                await this.startServer(modelPath, 99); // GPU mode
+                this.serverRetries = 0;
+                serverStarted = true;
+                return 'system';
+            } catch (error) {
+                logger.warn('GPU acceleration failed, will try CPU-only mode:', error);
+                
+                // Ensure process is completely stopped with extra care
+                await this.stop();
+                
+                // Add a longer pause to make sure resources are released
+                await new Promise(resolve => setTimeout(resolve, 3000));
+                
+                // Verify the port is available before continuing
+                const portAvailable = await this.checkPortAvailability(8080);
+                if (!portAvailable) {
+                    logger.warn('Port 8080 still in use after stopping previous instance, waiting longer');
+                    await new Promise(resolve => setTimeout(resolve, 5000));
+                }
+            }
         }
-        
-        // If GPU failed, try CPU-only mode
+    
+        // If GPU failed or was skipped, try CPU-only mode
         if (!serverStarted) {
             try {
                 logger.info('Starting in CPU-only mode');
@@ -475,6 +491,66 @@ class LlamaCppService {
         }
     }
 
+    async checkPortAvailability(port) {
+        return new Promise((resolve) => {
+            const net = require('net');
+            const tester = net.createServer()
+                .once('error', err => {
+                    if (err.code === 'EADDRINUSE') {
+                        resolve(false);
+                    } else {
+                        // For any other error, we'll assume the port is available
+                        logger.warn(`Port check error: ${err.message}`);
+                        resolve(true);
+                    }
+                })
+                .once('listening', () => {
+                    tester.close();
+                    resolve(true);
+                })
+                .listen(port);
+        });
+    }
+
+    // Add a method to detect systems with limited GPU memory
+    async hasLimitedGPU() {
+        // Basic detection of integrated graphics with limited VRAM
+        try {
+            if (process.platform === 'win32') {
+                const { execSync } = require('child_process');
+                // Use wmic to get basic GPU info
+                const gpuInfo = execSync('wmic path win32_VideoController get AdapterRAM, Name', { encoding: 'utf8' });
+                
+                // Simple parse for integrated graphics or low memory
+                const isIntegrated = gpuInfo.toLowerCase().includes('intel') && 
+                                    (gpuInfo.toLowerCase().includes('hd graphics') || 
+                                    gpuInfo.toLowerCase().includes('uhd graphics'));
+                
+                if (isIntegrated) {
+                    logger.info('Detected integrated Intel graphics, likely with limited VRAM');
+                    return true;
+                }
+                
+                // Try to extract VRAM amount
+                const matches = gpuInfo.match(/(\d+)/g);
+                if (matches && matches.length > 0) {
+                    // Convert bytes to MB
+                    const vramMB = parseInt(matches[0]) / (1024 * 1024);
+                    if (vramMB < 1024) { // Less than 1GB
+                        logger.info(`Detected limited VRAM: ~${vramMB.toFixed(0)}MB`);
+                        return true;
+                    }
+                }
+            }
+            
+            // For macOS or if detection failed, we'll return false to attempt GPU first
+            return false;
+        } catch (error) {
+            logger.warn('Error detecting GPU capabilities:', error);
+            return false; // Default to attempting GPU if detection fails
+        }
+    }
+
     async stop() {
         if (!this.process) {
             logger.debug('No child process to stop');
@@ -489,18 +565,31 @@ class LlamaCppService {
                 exec(`taskkill /pid ${pid} /f /t`, (err) => {
                     if (err) {
                         logger.error(`Failed to kill process ${pid}:`, err);
-                        // Additional cleanup attempt if needed
-                        try {
-                            this.process.kill('SIGKILL');
-                        } catch (e) {
-                            logger.warn('Error during forced termination:', e);
-                        }
+                        // Even if taskkill fails, we still need to continue cleanup
+                        logger.info('Continuing with cleanup despite process termination error');
                     } else {
                         logger.info(`Successfully terminated process ${pid}`);
                     }
                     
-                    // Add a delay to ensure OS resources are freed
-                    setTimeout(resolve, 500);
+                    // Clear the process reference regardless of the kill outcome
+                    this.process = null;
+                    this.isServerReady = false;
+                    
+                    // Force port check to ensure it's released
+                    this.checkPortAvailability(8080).then(isAvailable => {
+                        if (!isAvailable) {
+                            logger.warn('Port 8080 still appears to be in use, waiting longer');
+                            // Wait longer if port is still in use
+                            setTimeout(resolve, 2000);
+                        } else {
+                            // Add a delay to ensure OS resources are freed
+                            setTimeout(resolve, 1000);
+                        }
+                    }).catch(err => {
+                        logger.warn('Port check failed, using extended wait time:', err);
+                        // If port check fails for any reason, use a longer timeout
+                        setTimeout(resolve, 2000);
+                    });
                 });
             } else {
                 // Mac/Linux termination
@@ -521,12 +610,18 @@ class LlamaCppService {
                             logger.info('Process terminated gracefully');
                         }
                         
-                        // Add a delay to ensure OS resources are freed
-                        setTimeout(resolve, 300);
-                    }, 700);
+                        // Clear the process reference
+                        this.process = null;
+                        this.isServerReady = false;
+                        
+                        // Add a longer delay to ensure OS resources are freed
+                        setTimeout(resolve, 1500);
+                    }, 1000);
                 } catch(e) {
                     logger.warn('Error during process termination:', e);
-                    setTimeout(resolve, 300);
+                    this.process = null;
+                    this.isServerReady = false;
+                    setTimeout(resolve, 1500);
                 }
             }
         });
