@@ -89,7 +89,7 @@
       "artifactName": "${productName}-${version}-${arch}.${ext}",
       "category": "public.app-category.utilities",
       "darkModeSupport": true,
-      "notarize": true
+      "notarize": false
     },
     "afterSign": "electron-notarize-dmg.js"
   },
@@ -99,7 +99,7 @@
     "cross-env": "^7.0.3",
     "electron": "^28.0.0",
     "electron-builder": "^24.9.1",
-    "electron-notarize": "^1.2.2",
+    "@electron/notarize": "^2.1.0",
     "rimraf": "^6.0.1"
   },
   "dependencies": {

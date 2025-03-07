@@ -1,4 +1,4 @@
-const { notarize } = require('electron-notarize');
+const { notarize } = require('@electron/notarize');
 const path = require('path');
 
 exports.default = async function notarizing(context) {
@@ -14,7 +14,7 @@ exports.default = async function notarizing(context) {
     return;
   }
 
-  console.log('Starting notarization process');
+  console.log('Starting notarization process with notarytool');
   
   const appBundleId = context.packager.appInfo.info._configuration.appId;
   const appName = context.packager.appInfo.name;
@@ -23,8 +23,9 @@ exports.default = async function notarizing(context) {
   console.log(`Notarizing ${appBundleId} at ${appPath}`);
 
   try {
+    // Use the new notarytool-based approach
     await notarize({
-      appBundleId,
+      tool: 'notarytool',
       appPath,
       appleId: process.env.APPLE_ID,
       appleIdPassword: process.env.APPLE_ID_PASSWORD,
