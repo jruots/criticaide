@@ -18,6 +18,9 @@ jobs:
     - name: Install dependencies
       run: npm install
 
+    - name: Install electron-notarize
+      run: npm install @electron/notarize
+
     - name: Create build directory
       run: mkdir -p build
      
@@ -43,7 +46,7 @@ jobs:
           </dict>
         </plist>
         EOL
-    
+
     # Import and set up Apple certificate for code signing
     - name: Install the Apple certificate
       env:
@@ -66,6 +69,9 @@ jobs:
         # Import certificate to keychain
         security import $CERTIFICATE_PATH -P "$APPLE_CERTIFICATE_PASSWORD" -A -t cert -f pkcs12 -k $KEYCHAIN_PATH
         security list-keychain -d user -s $KEYCHAIN_PATH
+        
+        # Allow Apple's code signing tools to use the certificate from the keychain
+        security set-key-partition-list -S apple-tool:,apple: -s -k "$KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
 
     - name: Set llama.cpp binaries permissions
       run: |
@@ -78,8 +84,6 @@ jobs:
         APPLE_ID: ${{ secrets.APPLE_ID }}
         APPLE_ID_PASSWORD: ${{ secrets.APPLE_ID_PASSWORD }}
         APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
-        CSC_LINK: ${{ secrets.APPLE_CERTIFICATE_BASE64 }}
-        CSC_KEY_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
       run: npm run build:mac
      
     - name: Upload macOS artifacts

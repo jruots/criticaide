@@ -1,0 +1,84 @@
+name: Convert Developer ID Certificate
+on:
+  workflow_dispatch:
+    inputs:
+      certificate_password:
+        description: 'Password to protect the final P12 certificate'
+        required: true
+        type: string
+
+jobs:
+  convert-certificate:
+    runs-on: macos-latest
+    steps:
+      - name: Create directories
+        run: |
+          mkdir -p certificate_input
+          mkdir -p certificate_output
+      
+      - name: Download certificate file
+        uses: actions/upload-artifact@v4
+        with:
+          name: certificate-file
+          path: certificate_input
+        continue-on-error: true
+
+      - name: Check for certificate file
+        id: check-cert
+        run: |
+          if [ -f "certificate_input/*.cer" ]; then
+            echo "Certificate file found"
+            echo "CERT_FOUND=true" >> $GITHUB_ENV
+          else
+            echo "No certificate file found. Please upload a .cer file from Apple Developer Portal as an artifact named 'certificate-file'."
+            echo "CERT_FOUND=false" >> $GITHUB_ENV
+          fi
+
+      - name: Download private key
+        if: env.CERT_FOUND == 'true'
+        uses: actions/download-artifact@v4
+        with:
+          name: private-key-files
+          path: certificate_input
+          
+      - name: Convert Certificate
+        if: env.CERT_FOUND == 'true'
+        run: |
+          # Find the certificate file
+          CERT_FILE=$(find certificate_input -name "*.cer" | head -1)
+          
+          if [ -z "$CERT_FILE" ]; then
+            echo "Error: Could not find .cer file in the uploaded artifacts"
+            exit 1
+          fi
+          
+          # Decrypt the private key
+          PRIVATE_KEY_PASSWORD=$(cat certificate_input/private_key_password.txt)
+          openssl rsa -in certificate_input/private.key.enc -out certificate_output/private.key -passin pass:"$PRIVATE_KEY_PASSWORD"
+          
+          # Convert .cer to .pem
+          openssl x509 -inform der -in "$CERT_FILE" -out certificate_output/certificate.pem
+          
+          # Create .p12 file
+          openssl pkcs12 -export -out certificate_output/certificate.p12 -inkey certificate_output/private.key -in certificate_output/certificate.pem -password pass:"${{ github.event.inputs.certificate_password }}"
+          
+          # Convert the P12 to base64 for GitHub secrets
+          base64 -i certificate_output/certificate.p12 > certificate_output/certificate_base64.txt
+          
+          # Create a README with instructions
+          cat > certificate_output/README.txt << EOL
+          CERTIFICATE INSTRUCTIONS:
+          
+          1. Use the contents of certificate_base64.txt as your APPLE_CERTIFICATE_BASE64 GitHub secret
+          2. Use "${{ github.event.inputs.certificate_password }}" as your APPLE_CERTIFICATE_PASSWORD GitHub secret
+          3. Make sure you have APPLE_ID, APPLE_ID_PASSWORD, and APPLE_TEAM_ID in your GitHub secrets
+          EOL
+          
+          echo "Certificate conversion complete!"
+
+      - name: Upload converted certificate artifacts
+        if: env.CERT_FOUND == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: converted-certificate
+          path: certificate_output/
