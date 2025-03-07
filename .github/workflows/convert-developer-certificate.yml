@@ -23,3 +23,47 @@ jobs:
       - name: Write certificate file from input
         run: |
           echo "${{ github.event.inputs.certificate_base64 }}" | base64 --decode > certificate_input/certificate.cer
+          
+      - name: Download private key
+        uses: actions/download-artifact@v4
+        with:
+          name: private-key-files
+          path: certificate_input
+          
+      - name: Convert Certificate
+        run: |
+          # Check if certificate file exists
+          if [ ! -f "certificate_input/certificate.cer" ]; then
+            echo "Error: Could not find .cer file"
+            exit 1
+          fi
+          
+          # Decrypt the private key
+          PRIVATE_KEY_PASSWORD=$(cat certificate_input/private_key_password.txt)
+          openssl rsa -in certificate_input/private.key.enc -out certificate_output/private.key -passin pass:"$PRIVATE_KEY_PASSWORD"
+          
+          # Convert .cer to .pem
+          openssl x509 -inform der -in certificate_input/certificate.cer -out certificate_output/certificate.pem
+          
+          # Create .p12 file
+          openssl pkcs12 -export -out certificate_output/certificate.p12 -inkey certificate_output/private.key -in certificate_output/certificate.pem -password pass:"${{ github.event.inputs.certificate_password }}"
+          
+          # Convert the P12 to base64 for GitHub secrets
+          base64 -i certificate_output/certificate.p12 > certificate_output/certificate_base64.txt
+          
+          # Create a README with instructions
+          cat > certificate_output/README.txt << EOL
+          CERTIFICATE INSTRUCTIONS:
+          
+          1. Use the contents of certificate_base64.txt as your APPLE_CERTIFICATE_BASE64 GitHub secret
+          2. Use "${{ github.event.inputs.certificate_password }}" as your APPLE_CERTIFICATE_PASSWORD GitHub secret
+          3. Make sure you have APPLE_ID, APPLE_ID_PASSWORD, and APPLE_TEAM_ID in your GitHub secrets
+          EOL
+          
+          echo "Certificate conversion complete!"
+
+      - name: Upload converted certificate artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: converted-certificate
+          path: certificate_output/
