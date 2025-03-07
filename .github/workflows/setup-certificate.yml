@@ -1,0 +1,43 @@
+name: Simple Certificate Generation
+on:
+  workflow_dispatch:
+
+jobs:
+  generate-certificate:
+    runs-on: macos-latest
+    steps:
+      - name: Generate Self-Signed Certificate
+        run: |
+          # Create certificate directory
+          mkdir -p certs
+          cd certs
+          
+          echo "Generating private key..."
+          openssl genrsa -out private.key 2048
+          
+          echo "Creating self-signed certificate..."
+          openssl req -x509 -new -nodes -key private.key -sha256 -days 365 -out certificate.pem \
+            -subj "/CN=Developer Self-Signed/O=Criticaide/C=US"
+          
+          echo "Creating password for P12 file..."
+          CERT_PASSWORD=$(openssl rand -base64 16)
+          echo "Certificate password: $CERT_PASSWORD"
+          echo "CERT_PASSWORD=$CERT_PASSWORD" >> $GITHUB_ENV
+          
+          echo "Creating P12 file..."
+          openssl pkcs12 -export -out certificate.p12 -inkey private.key -in certificate.pem -password pass:$CERT_PASSWORD
+          
+          echo "Verifying P12 file..."
+          ls -la certificate.p12
+          file certificate.p12
+          
+          echo "Converting to Base64..."
+          CERT_BASE64=$(base64 -i certificate.p12)
+          echo "Base64 certificate length: ${#CERT_BASE64}"
+          
+          echo "CERTIFICATE INFORMATION:"
+          echo "------------------------"
+          echo "APPLE_CERTIFICATE_PASSWORD: $CERT_PASSWORD"
+          echo ""
+          echo "For APPLE_CERTIFICATE_BASE64, use this value:"
+          echo "$CERT_BASE64"
