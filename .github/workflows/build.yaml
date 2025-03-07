@@ -42,6 +42,29 @@ jobs:
           </dict>
         </plist>
         EOL
+    
+    # Import and set up Apple certificate for code signing
+    - name: Install the Apple certificate
+      env:
+        APPLE_CERTIFICATE_BASE64: ${{ secrets.APPLE_CERTIFICATE_BASE64 }}
+        APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+        KEYCHAIN_PASSWORD: ${{ github.run_id }}
+      run: |
+        # Create variables
+        CERTIFICATE_PATH=$RUNNER_TEMP/build_certificate.p12
+        KEYCHAIN_PATH=$RUNNER_TEMP/app-signing.keychain-db
+        
+        # Import certificate from secrets
+        echo -n "$APPLE_CERTIFICATE_BASE64" | base64 --decode -o $CERTIFICATE_PATH
+        
+        # Create temporary keychain
+        security create-keychain -p "$KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
+        security set-keychain-settings -lut 21600 $KEYCHAIN_PATH
+        security unlock-keychain -p "$KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
+        
+        # Import certificate to keychain
+        security import $CERTIFICATE_PATH -P "$APPLE_CERTIFICATE_PASSWORD" -A -t cert -f pkcs12 -k $KEYCHAIN_PATH
+        security list-keychain -d user -s $KEYCHAIN_PATH
 
     - name: Set llama.cpp binaries permissions
       run: |
@@ -49,7 +72,13 @@ jobs:
         chmod +x resources/llama/binaries/mac/*.dylib
         chmod +x resources/llama/binaries/mac/*.metal
      
-    - name: Build macOS
+    - name: Build macOS with notarization
+      env:
+        APPLE_ID: ${{ secrets.APPLE_ID }}
+        APPLE_ID_PASSWORD: ${{ secrets.APPLE_ID_PASSWORD }}
+        APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        CSC_LINK: ${{ secrets.APPLE_CERTIFICATE_BASE64 }}
+        CSC_KEY_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
       run: npm run build:mac
      
     - name: Upload macOS artifacts

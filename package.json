@@ -25,17 +25,19 @@
       "buildResources": "build",
       "app": "."
     },
-  "files": [
-    "**/*",
-    "!resources/llama/models/**/*"
-  ],
-  "extraResources": [
-    {
-      "from": "resources/llama/binaries/win",
-      "to": "bin",
-      "filter": ["**/*"]
-    }
-  ],
+    "files": [
+      "**/*",
+      "!resources/llama/models/**/*"
+    ],
+    "extraResources": [
+      {
+        "from": "resources/llama/binaries/win",
+        "to": "bin",
+        "filter": [
+          "**/*"
+        ]
+      }
+    ],
     "win": {
       "target": [
         {
@@ -61,28 +63,35 @@
     "mac": {
       "files": [
         "!resources/llama/binaries/win/**/*"
-    ],
+      ],
       "extraResources": [
         {
           "from": "resources/llama/binaries/mac",
           "to": "bin",
-          "filter": ["**/*"]
+          "filter": [
+            "**/*"
+          ]
         }
       ],
       "hardenedRuntime": true,
+      "gatekeeperAssess": false,
       "entitlements": "build/entitlements.mac.plist",
       "entitlementsInherit": "build/entitlements.mac.plist",
       "target": [
         {
           "target": "dmg",
-          "arch": ["arm64"]
+          "arch": [
+            "arm64"
+          ]
         }
       ],
       "icon": "resources/icons/icon.icns",
       "artifactName": "${productName}-${version}-${arch}.${ext}",
       "category": "public.app-category.utilities",
-      "darkModeSupport": true
-    }
+      "darkModeSupport": true,
+      "notarize": true
+    },
+    "afterSign": "electron-notarize-dmg.js"
   },
   "author": "jruots",
   "license": "MIT",
@@ -90,6 +99,7 @@
     "cross-env": "^7.0.3",
     "electron": "^28.0.0",
     "electron-builder": "^24.9.1",
+    "electron-notarize": "^1.2.2",
     "rimraf": "^6.0.1"
   },
   "dependencies": {
