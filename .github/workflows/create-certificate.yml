@@ -1,0 +1,36 @@
+name: Create Apple Certificate
+on:
+  workflow_dispatch:
+    inputs:
+      certificate_type:
+        description: 'Certificate type (development or distribution)'
+        required: true
+        default: 'development'
+        type: choice
+        options:
+          - development
+          - distribution
+
+jobs:
+  create-certificate:
+    runs-on: macos-latest
+    steps:
+      - name: Create Certificate Signing Request
+        run: |
+          # Create private key
+          openssl genrsa -out private.key 2048
+          
+          # Create CSR file
+          openssl req -new -key private.key -out CertificateSigningRequest.certSigningRequest -subj "/emailAddress=${{ secrets.APPLE_ID }}/CN=Criticaide/C=US"
+          
+          # Display CSR content for copying
+          echo "===== CERTIFICATE SIGNING REQUEST (COPY THIS) ====="
+          cat CertificateSigningRequest.certSigningRequest | base64
+          echo "=================================================="
+          
+          # Wait for manual certificate creation
+          echo "Now, manually create a certificate using this CSR in Apple Developer Portal."
+          echo "After that, enter the certificate data in the next step."
+          
+          # Wait for manual intervention
+          sleep 600  # Wait 10 minutes
