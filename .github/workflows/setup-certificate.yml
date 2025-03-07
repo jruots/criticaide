@@ -1,50 +1,43 @@
-name: Set Up Apple Certificate
+name: Simple Certificate Generation
 on:
   workflow_dispatch:
 
 jobs:
-  setup-certificate:
+  generate-certificate:
     runs-on: macos-latest
     steps:
-      - name: Install Apple Certificate Tools
+      - name: Generate Self-Signed Certificate
         run: |
-          brew install openssl
-
-      - name: Create Certificate
-        env:
-          APPLE_ID: ${{ secrets.APPLE_ID }}
-          APPLE_ID_PASSWORD: ${{ secrets.APPLE_ID_PASSWORD }}
-          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
-        run: |
-          # Create directory for certificates
+          # Create certificate directory
           mkdir -p certs
+          cd certs
           
-          # Create private key
-          openssl genrsa -out certs/private.key 2048
+          echo "Generating private key..."
+          openssl genrsa -out private.key 2048
           
-          # Create proper CSR
-          openssl req -new -key certs/private.key -out certs/request.csr -subj "/CN=Developer ID Application: $APPLE_TEAM_ID/OU=$APPLE_TEAM_ID/O=Apple Development/C=US"
+          echo "Creating self-signed certificate..."
+          openssl req -x509 -new -nodes -key private.key -sha256 -days 365 -out certificate.pem \
+            -subj "/CN=Developer Self-Signed/O=Criticaide/C=US"
           
-          # Create a strong password for P12
-          export CERTIFICATE_PASSWORD=$(openssl rand -base64 24)
-          echo "Using certificate password: $CERTIFICATE_PASSWORD"
-          echo "CERTIFICATE_PASSWORD=$CERTIFICATE_PASSWORD" >> $GITHUB_ENV
+          echo "Creating password for P12 file..."
+          CERT_PASSWORD=$(openssl rand -base64 16)
+          echo "Certificate password: $CERT_PASSWORD"
+          echo "CERT_PASSWORD=$CERT_PASSWORD" >> $GITHUB_ENV
           
-          # For security, we'll print masked info
-          echo "::add-mask::$CERTIFICATE_PASSWORD"
+          echo "Creating P12 file..."
+          openssl pkcs12 -export -out certificate.p12 -inkey private.key -in certificate.pem -password pass:$CERT_PASSWORD
           
-          # Create P12 certificate
-          openssl pkcs12 -export -out certs/certificate.p12 -inkey certs/private.key -in certs/request.csr -passout pass:$CERTIFICATE_PASSWORD
+          echo "Verifying P12 file..."
+          ls -la certificate.p12
+          file certificate.p12
           
-          # Base64 encode the P12
-          CERTIFICATE_BASE64=$(base64 -i certs/certificate.p12)
-          echo "::add-mask::$CERTIFICATE_BASE64"
+          echo "Converting to Base64..."
+          CERT_BASE64=$(base64 -i certificate.p12)
+          echo "Base64 certificate length: ${#CERT_BASE64}"
           
-          # Output instructions for GitHub secrets
+          echo "CERTIFICATE INFORMATION:"
+          echo "------------------------"
+          echo "APPLE_CERTIFICATE_PASSWORD: $CERT_PASSWORD"
           echo ""
-          echo "ADD THESE VALUES TO YOUR GITHUB SECRETS:"
-          echo ""
-          echo "APPLE_CERTIFICATE_PASSWORD: $CERTIFICATE_PASSWORD"
-          echo ""
-          echo "For APPLE_CERTIFICATE_BASE64, use this value (it's hidden in logs for security):"
-          echo "$CERTIFICATE_BASE64"
+          echo "For APPLE_CERTIFICATE_BASE64, use this value:"
+          echo "$CERT_BASE64"
