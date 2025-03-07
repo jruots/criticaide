@@ -89,7 +89,7 @@
       "artifactName": "${productName}-${version}-${arch}.${ext}",
       "category": "public.app-category.utilities",
       "darkModeSupport": true,
-      "notarize": true
+      "notarize": false
     },
     "afterSign": "electron-notarize-dmg.js"
   },
