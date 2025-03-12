@@ -38,4 +38,14 @@ contextBridge.exposeInMainWorld('api', {
     onServerError: (callback) => {
         ipcRenderer.on('server-error', (event, error) => callback(error));
     },
+
+    onModelDownloadStart: (callback) => {
+        ipcRenderer.on('model-download-start', () => callback());
+    },
+    onModelDownloadProgress: (callback) => {
+        ipcRenderer.on('model-download-progress', (event, progress) => callback(progress));
+    },
+    onModelDownloadComplete: (callback) => {
+        ipcRenderer.on('model-download-complete', () => callback());
+    }
 });

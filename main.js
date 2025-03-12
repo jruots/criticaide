@@ -14,6 +14,8 @@ const keyboardListener = new GlobalKeyboardListener();
 const MAX_DETAILED_LOGGING_ATTEMPTS = 3;
 let shortcutAttemptCount = 0;
 
+global.mainWindow = null;
+
 let store = null;
 
 if (process.platform === 'win32') {
@@ -46,6 +48,9 @@ function createWindow() {
         }
     });
 
+    // Make window available globally right away
+    global.mainWindow = mainWindow;
+    
     mainWindow.loadFile('src/index.html');
     
     if (isDev) {
@@ -57,7 +62,57 @@ function createWindow() {
         logger.info('Main window loaded successfully');
         // Send server starting event after window is loaded
         mainWindow.webContents.send('server-starting');
+        
+        // Initialize services only after window is fully loaded
+        initializeServices();
     });
+}
+
+async function initializeServices() {
+    try {
+        logger.setScope('Services');
+        logger.info('Initializing application services...');
+        
+        llamaService = new LlamaCppService();
+        logger.info('LlamaCpp service initialized');
+        
+        await llamaService.serve();
+        logger.info('LlamaCpp server started');
+        
+        // Initialize agent service
+        agentService = new AgentService(llamaService);
+        agentService.init(sendAgentProgress);
+        logger.info('Agent service initialized');
+        
+        // Server is ready - send event
+        if (mainWindow?.webContents) {
+            mainWindow.webContents.send('server-ready');
+        }
+        
+        // Show welcome notification
+        const isMac = process.platform === 'darwin';
+        const copyKey = isMac ? 'Cmd+C' : 'Ctrl+C';
+        const shortcutKey = isMac ? 'Cmd+Option+Shift+T' : 'Ctrl+Alt+Shift+T';
+        new Notification({
+            title: 'Welcome to Criticaide Agents!',
+            body: `App is ready! To analyze text:\n1. Select text\n2. Press ${copyKey}\n3. Press ${shortcutKey}`
+        }).show();
+        
+        setupKeyboardShortcuts();
+        shortcutAttemptCount = 0;
+    } catch (error) {
+        logger.error('Failed to initialize services:', error);
+        logger.createErrorDump(error);
+        
+        if (mainWindow) {
+            mainWindow.webContents.send('server-error', error.message);
+        }
+        
+        new Notification({
+            title: 'Criticaide',
+            body: 'Error starting application. Please check logs.'
+        }).show();
+    }
 }
 
 function sendAgentProgress(update) {
@@ -282,44 +337,14 @@ app.whenReady().then(async () => {
         const Store = await import('electron-store');
         store = new Store.default();
         
+        // Only create the window here - services will be initialized after window loads
         createWindow(store);
-        
-        llamaService = new LlamaCppService();
-        logger.info('LlamaCpp service initialized');
-        
-        await llamaService.serve();
-        logger.info('LlamaCpp server started');
-        
-        // Initialize agent service
-        agentService = new AgentService(llamaService);
-        agentService.init(sendAgentProgress);
-        logger.info('Agent service initialized');
-        
-        // Server is ready - send event only if window exists
-        if (mainWindow?.webContents) {
-            mainWindow.webContents.send('server-ready');
-        }
-        
-        // Show welcome notification
-        const isMac = process.platform === 'darwin';
-        const copyKey = isMac ? 'Cmd+C' : 'Ctrl+C';
-        const shortcutKey = isMac ? 'Cmd+Option+Shift+T' : 'Ctrl+Alt+Shift+T';
-        new Notification({
-            title: 'Welcome to Criticaide Agents!',
-            body: `App is ready! To analyze text:\n1. Select text\n2. Press ${copyKey}\n3. Press ${shortcutKey}`
-        }).show();
-        
-        setupKeyboardShortcuts();
-        shortcutAttemptCount = 0;
         
     } catch (error) {
         logger.error('Failed to start:', error);
         logger.createErrorDump(error);
         
-        if (mainWindow) {
-            mainWindow.webContents.send('server-error', error.message);
-        }
-        
+        // Display error notification if possible
         new Notification({
             title: 'Criticaide',
             body: 'Error starting application. Please check logs.'
