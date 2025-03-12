@@ -93,6 +93,12 @@ class LlamaCppService {
     
         logger.info('Initiating model download...');
         logger.info(`Model will be saved to: ${modelPath}`);
+        
+        // Notify UI of download start
+        if (global.mainWindow?.webContents) {
+            logger.debug('Sending model-download-start event');
+            global.mainWindow.webContents.send('model-download-start');
+        }
     
         // Ensure models directory exists
         try {
@@ -126,29 +132,65 @@ class LlamaCppService {
             return new Promise((resolve, reject) => {
                 const body = response.body;
                 const reader = body.getReader();
+                
+                // Handle download cancellation
+                const cleanup = () => {
+                    try {
+                        reader.cancel();
+                        fileStream.close();
+                    } catch (e) {
+                        logger.error('Error during cleanup:', e);
+                    }
+                };
     
                 const processChunk = ({ done, value }) => {
                     if (done) {
                         fileStream.end();
                         logger.info('Model download completed');
+                        
+                        // Notify UI of download completion
+                        if (global.mainWindow?.webContents) {
+                            logger.debug('Sending model-download-complete event');
+                            global.mainWindow.webContents.send('model-download-complete');
+                        }
+                        
                         resolve();
                         return;
                     }
     
                     downloadedSize += value.length;
                     const progress = (downloadedSize / totalSize) * 100;
-                    logger.debug(`Download progress: ${progress.toFixed(2)}%`);
+                    const formattedProgress = progress.toFixed(2);
+                    
+                    // Only log every 5% to reduce log spam
+                    if (Math.round(progress) % 5 === 0) {
+                        logger.debug(`Download progress: ${formattedProgress}%`);
+                    }
+                    
+                    // Send progress update to UI
+                    if (global.mainWindow?.webContents) {
+                        global.mainWindow.webContents.send('model-download-progress', {
+                            percentage: formattedProgress
+                        });
+                    }
                     
                     fileStream.write(Buffer.from(value));
-                    reader.read().then(processChunk).catch(reject);
+                    reader.read().then(processChunk).catch(error => {
+                        cleanup();
+                        reject(error);
+                    });
                 };
     
                 fileStream.on('error', (error) => {
+                    cleanup();
                     logger.error('Error writing model file:', error);
                     reject(new Error(`Failed to save model: ${error.message}`));
                 });
     
-                reader.read().then(processChunk).catch(reject);
+                reader.read().then(processChunk).catch(error => {
+                    cleanup();
+                    reject(error);
+                });
             });
     
         } catch (error) {

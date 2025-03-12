@@ -704,6 +704,40 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    function createDownloadUI() {
+        console.log('[DOWNLOAD UI] Creating download UI');
+        const loadingDiv = document.getElementById('loading');
+        console.log('[DOWNLOAD UI] Loading div found:', !!loadingDiv);
+        
+        if (!loadingDiv) {
+            console.log('[DOWNLOAD UI] Loading div not found!');
+            return null;
+        }
+        
+        loadingDiv.innerHTML = `
+            <div class="download-container">
+                <h3>Downloading Language Model</h3>
+                <div class="download-progress-bar">
+                    <div class="download-progress-indicator" style="width: 0%"></div>
+                </div>
+                <div class="download-progress-text">0%</div>
+                <p class="download-info">This may take a few minutes depending on your internet connection.</p>
+            </div>
+        `;
+        
+        const progressBar = loadingDiv.querySelector('.download-progress-indicator');
+        const progressText = loadingDiv.querySelector('.download-progress-text');
+        
+        console.log('[DOWNLOAD UI] Progress elements found:', 
+                    'progressBar:', !!progressBar, 
+                    'progressText:', !!progressText);
+        
+        return {
+            progressBar,
+            progressText
+        };
+    }
+
     // Create empty state at startup
     createEmptyState();
 
@@ -774,11 +808,42 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         }
         
-        // Handle server events
-        if (window.api.onServerStarting) {
-            window.api.onServerStarting(() => {
-                console.log('Server starting');
-                // Show loading state
+        // Model download events
+        if (window.api.onModelDownloadStart) {
+            window.api.onModelDownloadStart(() => {
+                console.log('[DOWNLOAD EVENT] Model download start event received');
+                const ui = createDownloadUI();
+                console.log('[DOWNLOAD EVENT] UI created:', ui);
+                window.downloadUI = ui;
+            });
+        }
+        
+        if (window.api.onModelDownloadProgress) {
+            window.api.onModelDownloadProgress((data) => {
+                console.log('[DOWNLOAD EVENT] Progress update:', data.percentage);
+                if (!window.downloadUI) {
+                    console.log('[DOWNLOAD EVENT] Download UI not found during progress update!');
+                    return;
+                }
+                
+                const { progressBar, progressText } = window.downloadUI;
+                if (!progressBar || !progressText) {
+                    console.log('[DOWNLOAD EVENT] Progress elements missing:', 
+                                'progressBar:', !!progressBar, 
+                                'progressText:', !!progressText);
+                    return;
+                }
+                
+                progressBar.style.width = `${data.percentage}%`;
+                progressText.textContent = `${data.percentage}%`;
+            });
+        }
+        
+        if (window.api.onModelDownloadComplete) {
+            window.api.onModelDownloadComplete(() => {
+                console.log('Model download complete');
+                
+                // Explicitly show the server starting UI after download completes
                 const loadingDiv = document.getElementById('loading');
                 if (loadingDiv) {
                     loadingDiv.innerHTML = `
@@ -787,6 +852,30 @@ document.addEventListener('DOMContentLoaded', () => {
                             <div class="loading-text">Starting analysis engine...</div>
                         </div>
                     `;
+                }
+                
+                // Clear download UI reference so future server-starting events work correctly
+                window.downloadUI = null;
+            });
+        }
+        
+        // Handle server events
+        if (window.api.onServerStarting) {
+            window.api.onServerStarting(() => {
+                console.log('[SERVER EVENT] Server starting event received');
+                console.log('[SERVER EVENT] Download UI exists:', !!window.downloadUI);
+                
+                // Only show loading if we're not already showing download UI
+                if (!window.downloadUI) {
+                    const loadingDiv = document.getElementById('loading');
+                    if (loadingDiv) {
+                        loadingDiv.innerHTML = `
+                            <div class="loading-indicator" style="height: 80vh; display: flex; align-items: center; justify-content: center;">
+                                <div class="spinner"></div>
+                                <div class="loading-text">Starting analysis engine...</div>
+                            </div>
+                        `;
+                    }
                 }
             });
         }
