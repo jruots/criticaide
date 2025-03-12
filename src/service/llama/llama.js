@@ -229,7 +229,7 @@ class LlamaCppService {
         if (process.platform === 'darwin') {
             // Ensure executable permissions
             try {
-                await fs.promises.chmod(binaryPath, '755');
+                await fs.chmod(binaryPath, '755');
                 logger.info('Set executable permissions for server binary');
             } catch (error) {
                 logger.error('Failed to set executable permissions:', error);
