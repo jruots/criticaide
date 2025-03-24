@@ -41,7 +41,7 @@ package-lock.json
 dist/
 out/
 .webpack/
-build/
+#build/
 
 # Electron-builder output
 dist_electron/
