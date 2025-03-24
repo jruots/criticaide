@@ -248,6 +248,12 @@ function setupKeyboardShortcuts() {
     logger.info('Setting up keyboard shortcuts...');
     let currentKeys = new Set();
 
+    // Add explicit logging for macOS setup
+    if (process.platform === 'darwin') {
+        logger.info('Setting up keyboard shortcuts for macOS');
+        logger.info('Mac users: You need to grant input monitoring permission in System Preferences > Security & Privacy > Privacy > Input Monitoring');
+    }
+
     keyboardListener.addListener(function (e) {
         if (e.name.startsWith('MOUSE')) {
             return;
@@ -256,19 +262,25 @@ function setupKeyboardShortcuts() {
         const handleKeyboardEvent = () => {
             logger.setScope('Keyboard');
             
+            // Always log key events for debugging - especially important for macOS
+            logger.debug(`Keyboard event: ${e.state} - ${e.name}`);
+            
             if (e.state === 'DOWN') {
                 currentKeys.add(e.name);
+                logger.debug(`Current keys: ${Array.from(currentKeys).join(', ')}`);
                 
                 const isWindows = process.platform === 'win32';
                 const isMac = process.platform === 'darwin';
                 
+                // Mac key detection for Command (META)
                 const hasCtrlOrCmd = isWindows 
                     ? (currentKeys.has('LEFT CTRL') || currentKeys.has('RIGHT CTRL'))
                     : (currentKeys.has('LEFT META') || currentKeys.has('RIGHT META'));
                 
+                // Mac key detection for Option (ALT)
                 const hasAltOrOption = isWindows
                     ? (currentKeys.has('LEFT ALT') || currentKeys.has('RIGHT ALT'))
-                    : (currentKeys.has('LEFT OPTION') || currentKeys.has('RIGHT OPTION'));
+                    : (currentKeys.has('LEFT ALT') || currentKeys.has('RIGHT ALT'));
                 
                 const hasShift = currentKeys.has('LEFT SHIFT') || currentKeys.has('RIGHT SHIFT');
                 const hasT = currentKeys.has('T');
@@ -278,6 +290,7 @@ function setupKeyboardShortcuts() {
                 if (isFullShortcut) {
                     shortcutAttemptCount++;
                     logger.info(`Shortcut attempt ${shortcutAttemptCount} detected`);
+                    logger.info(`Current keys detected: ${Array.from(currentKeys).join(', ')}`);
                     
                     setTimeout(() => {
                         const selectedText = clipboard.readText();
@@ -319,6 +332,7 @@ function setupKeyboardShortcuts() {
             } else if (e.state === 'UP') {
                 const keyName = e.name;
                 currentKeys.delete(keyName);
+                logger.debug(`Key up: ${keyName}, Current keys: ${Array.from(currentKeys).join(', ')}`);
             }
         };
         

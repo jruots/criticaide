@@ -71,6 +71,13 @@
           "filter": [
             "**/*"
           ]
+        },
+        {
+          "from": "node_modules/node-global-key-listener/bin/mac",
+          "to": "bin/node-global-key-listener",
+          "filter": [
+            "**/*"
+          ]
         }
       ],
       "hardenedRuntime": true,
